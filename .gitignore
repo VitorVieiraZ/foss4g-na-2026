@@ -1,0 +1,8 @@
+# raw screen recordings: over GitHub's 100 MB limit (decks use mergin-deck/assets/demo.mp4)
+/*.mp4
+.DS_Store
+.claude/
+
+# saved web page (third-party scripts and avatars), not used by the decks
+/logo.html
+/logo_files/
