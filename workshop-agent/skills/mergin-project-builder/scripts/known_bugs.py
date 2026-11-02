@@ -46,6 +46,10 @@ FEATURES = {
     "lines and polygons": ["polygon", "line", "vertex", "geometry", "snapping"],
     "background maps": ["vector tile", "basemap", "background", "mbtiles", "xyz"],
     "QGIS 4": ["qgis 4", "qgis4", "qt6", "qt 6"],
+    "position tracking": ["tracking", "track"],
+    "sketching": ["sketch", "sketching"],
+    "filters": ["filter", "filtering"],
+    "selective sync": ["selective sync", "selective"],
 }
 
 
@@ -106,22 +110,28 @@ def quoted(text, limit=1500):
 def features_in(spec):
     """Which FEATURES keys a spec uses."""
     used = {"forms", "sync", "default values"}  # every generated project has these
-    widgets = {f.get("widget", "text") for l in spec["layers"] for f in l["fields"]}
-    geoms = {l["geometry"] for l in spec["layers"]}
+    layers = spec.get("layers", [])
+    widgets = {f.get("widget", "text") for l in layers for f in l["fields"]}
+    geoms = {l["geometry"] for l in layers}
     if "photo" in widgets: used.add("photos")
-    if any(l.get("multiple_photos") for l in spec["layers"]):
+    if any(l.get("multiple_photos") for l in layers):
         used |= {"photos", "relations"}
     if "dropdown" in widgets: used.add("pick lists (Value Map)")
     if "lookup" in widgets: used.add("lookup lists (Value Relation)")
     if "date" in widgets: used.add("dates")
     if "checkbox" in widgets: used.add("checkboxes")
     if "number" in widgets: used.add("numbers")
-    if any(f.get("constraint") or f.get("required") for l in spec["layers"] for f in l["fields"]):
+    if any(f.get("constraint") or f.get("required") for l in layers for f in l["fields"]):
         used.add("constraints")
     if "point" in geoms: used.add("GPS")
     if geoms & {"line", "polygon"}: used.add("lines and polygons")
     if spec.get("background"): used.add("background maps")
     if str(spec.get("qgis_version", "")).startswith("4"): used.add("QGIS 4")
+    app = spec.get("app_settings") or {}
+    if app.get("position_tracking"): used.add("position tracking")
+    if app.get("map_sketching") or app.get("photo_sketching"): used.add("sketching")
+    if app.get("filters"): used.add("filters")
+    if app.get("selective_sync"): used.add("selective sync")
     return used
 
 

@@ -41,11 +41,12 @@ def check_spec(spec):
             errors.append(f"lookup list '{name}': use lowercase letters, numbers and _")
         if not all(isinstance(v, str) and v for v in lists[name]):
             errors.append(f"lookup list '{name}': values must be non-empty text")
-    layer_names = [l.get("name", "?") for l in spec["layers"]] + list(lists)
-    layer_names += [l.get("name", "?") + "_photos" for l in spec["layers"] if l.get("multiple_photos")]
+    layers = spec.get("layers", [])
+    layer_names = [l.get("name", "?") for l in layers] + list(lists)
+    layer_names += [l.get("name", "?") + "_photos" for l in layers if l.get("multiple_photos")]
     if len(layer_names) != len(set(layer_names)):
         errors.append("two layers / lookup lists / photo tables share a name")
-    for layer in spec["layers"]:
+    for layer in spec.get("layers", []):
         missing = [k for k in ("name", "geometry", "fields") if k not in layer]
         if missing:
             errors.append(f"a layer is missing {', '.join(missing)}")
@@ -131,10 +132,33 @@ def check_settings(spec):
         errors.append("mode must be 'new' or 'add'")
     if spec.get("background", "mergin") not in ("mergin", "osm", None):
         errors.append("background must be 'mergin', 'osm' or null")
-    pq, sn = spec.get("photo_quality", 1), spec.get("snapping", 0)
-    if type(pq) is not int or pq not in (0, 1, 2, 3) or type(sn) is not int or sn not in (0, 1, 2):
-        errors.append("photo_quality must be 0-3 and snapping 0-2")
-    for layer in spec["layers"]:
+    app = app_settings(spec)
+    allowed = {"photo_quality": (0, 1, 2, 3), "snapping": (0, 1, 2), "tracking_frequency": (0, 1, 2),
+               "layer_order": ("qgis", "alphabetical")}
+    for key, values in allowed.items():
+        v = app.get(key)
+        if v is not None and (type(v) is bool or v not in values):
+            errors.append(f"app_settings.{key} must be one of {values}")
+    for key in ("position_tracking", "map_sketching", "photo_sketching", "selective_sync"):
+        if app.get(key) is not None and type(app[key]) is not bool:
+            errors.append(f"app_settings.{key} must be true or false")
+    for color in app.get("sketch_colors") or []:
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(color)):
+            errors.append(f"app_settings.sketch_colors: {color!r} should look like #5e9ee4")
+    if len(app.get("sketch_colors") or []) > 7:
+        errors.append("app_settings.sketch_colors: at most 7 colours")
+    folder_ = app.get("selective_sync_folder", "photos")
+    if not re.fullmatch(r"[\w.\- /]*", str(folder_)) or ".." in str(folder_):
+        errors.append("app_settings.selective_sync_folder must be a folder inside the project")
+    names = {l.get("name") for l in spec.get("layers", [])}
+    for f in app.get("filters") or []:
+        if not isinstance(f, dict) or not f.get("layer") or not f.get("field"):
+            errors.append("each filter needs 'layer' and 'field'")
+        elif spec.get("mode", "new") == "new" and f["layer"] not in names:
+            errors.append(f"filter: no layer called {f['layer']!r} in this spec")
+    if spec.get("mode", "new") == "new" and not spec.get("layers"):
+        errors.append("a new project needs at least one layer")
+    for layer in spec.get("layers", []):
         if "color" in layer and not re.fullmatch(r"#[0-9a-fA-F]{6}", str(layer["color"])):
             errors.append(f"{layer['name']}: color must look like #1db278")
     aoi = (spec.get("area_of_interest") or {}).get("bbox")
@@ -143,6 +167,20 @@ def check_settings(spec):
         errors.append("area_of_interest.bbox must be [west, south, east, north] in degrees")
     if errors:
         sys.exit("Spec problems:\n  - " + "\n  - ".join(errors))
+
+
+FREQUENCY = {"best": 0, "normal": 1, "low": 2}
+
+
+def app_settings(spec):
+    """The Mergin Maps tab settings. Old specs had photo_quality/snapping at the top."""
+    app = dict(spec.get("app_settings") or {})
+    for key in ("photo_quality", "snapping"):
+        if key in spec and key not in app:
+            app[key] = spec[key]
+    if isinstance(app.get("tracking_frequency"), str):
+        app["tracking_frequency"] = FREQUENCY.get(app["tracking_frequency"].lower(), app["tracking_frequency"])
+    return app
 
 
 def plain(text):
@@ -164,6 +202,7 @@ def main(spec_path, out_path, force=False):
         sys.exit(f"render.py: {out_path} exists. Pass --force to replace it.")
     os.makedirs(os.path.dirname(target), exist_ok=True)
     aoi = spec.get("area_of_interest")
+    app = app_settings(spec)
     values = {
         "PROJECT_TITLE": plain(spec.get("title", spec["project_name"])),
         "MODE": spec.get("mode", "new"),
@@ -172,10 +211,19 @@ def main(spec_path, out_path, force=False):
         "CRS": spec.get("crs", "EPSG:4326"),
         "AREA_OF_INTEREST": (py(aoi["bbox"]) + f"  # {plain(aoi.get('label', ''))}") if aoi else "None",
         "BACKGROUND": str(spec.get("background", "mergin")),
-        "PHOTO_QUALITY": str(spec.get("photo_quality", 1)),
-        "SNAPPING": str(spec.get("snapping", 0)),
+        "PHOTO_QUALITY": repr(app.get("photo_quality")),
+        "SNAPPING": repr(app.get("snapping")),
+        "POSITION_TRACKING": repr(app.get("position_tracking")),
+        "TRACKING_FREQUENCY": repr(app.get("tracking_frequency")),
+        "MAP_SKETCHING": repr(app.get("map_sketching")),
+        "SKETCH_COLORS": repr(app.get("sketch_colors")),
+        "PHOTO_SKETCHING": repr(app.get("photo_sketching")),
+        "LAYER_ORDER": repr(app.get("layer_order")),
+        "SELECTIVE_SYNC": repr(app.get("selective_sync")),
+        "SELECTIVE_SYNC_FOLDER": repr(app.get("selective_sync_folder", "photos")),
+        "FILTERS": py(app.get("filters") or []),
         "LOOKUP_LISTS": py(spec.get("lookup_lists", {})),
-        "LAYERS": py(spec["layers"]),
+        "LAYERS": py(spec.get("layers", [])),
         "QGIS_VERSION": str(spec.get("qgis_version", "3.x")),
         "DATE": datetime.date.today().isoformat(),
     }

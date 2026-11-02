@@ -102,8 +102,10 @@ for layer in project.mapLayers().values():
         if re.search(r'[\\/()\[\]{}"\n\r]', f):
             must_fix(f"'{name}': field name '{f}' has characters Mergin Maps rejects.")
 
-    # A UUID field for stable IDs.
-    if can_edit and not any(fields.field(i).name().lower() in ("uuid", "unique_id", "unique-id")
+    # A UUID field for stable IDs (not needed on the app's own tracking/sketch layers).
+    special = {project.readEntry("Mergin", "PositionTracking/TrackingLayer")[0],
+               project.readEntry("Mergin", "MapSketching/Layer")[0]}
+    if can_edit and layer.id() not in special and not any(fields.field(i).name().lower() in ("uuid", "unique_id", "unique-id")
                             for i in range(fields.count())):
         look_at(f"'{name}' has no uuid field. Add one (default uuid()) if anything links to it.")
 

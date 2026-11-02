@@ -74,7 +74,7 @@ Sources
 | Several photos per feature: child table (`photo`, `external-pk`) related on the parent uuid + Relation widget | One field holds one photo | PHOTOS | ✅ `multiple_photos` → `<layer>_photos.gpkg`, `external_pk` → parent `uuid`, Composition |
 | The app turns a relation into a gallery when the child table has a photo (ExternalResource) field; it uses the first one, unless the relation label contains "nogallery" | App behaviour | APP relationfeaturesmodel.cpp, inpututils.cpp | ✅ one photo field per table |
 | Don't put a single photo field on a layer that also has a photo gallery | Gallery photos can overwrite the parent's photo | [mobile#2029](https://github.com/MerginMaps/mobile/issues/2029) | ✅ render.py warns |
-| Selective sync on the photos folder when surveyors don't need each other's photos | Data use, sync time | BP #19 | not generated (plugin checkbox) |
+| Selective sync on the photos folder when surveyors don't need each other's photos | Data use, sync time | BP #19 | ✅ `selective_sync` |
 
 ## 5. Project settings (`QgsProject.writeEntry("Mergin", key, value)`)
 
@@ -84,9 +84,12 @@ Sources
 | `Snapping` | 0 none, 1 basic, 2 follow QGIS | ✅ |
 | `SortLayersMethod/Method` | 0 QGIS order, 1 alphabetical (app default) | ✅ 0 |
 | `PhotoNaming/<layer_id>/<field>` | expression | ✅ |
-| `PositionTracking/Enabled`, `/UpdateFrequency`, `/TrackingLayer` | bool, 0–2, layer id | plugin checkbox |
-| `MapSketching/Enabled`, `/Layer`, `/Colors` | | plugin checkbox |
-| `PhotoSketching/Enabled`, `Filtering/Enabled`, `Filtering/Filters` | | plugin |
+| `PositionTracking/Enabled`, `/UpdateFrequency`, `/TrackingLayer` | bool, 0 best / 1 normal / 2 low, layer id (`tracking_layer.gpkg`, LineStringZM, EPSG:4326, plugin recipe) | ✅ |
+| `MapSketching/Enabled`, `/Layer`, `/Colors` | bool, layer id (`map_sketches.gpkg`, plugin recipe), list of hex | ✅ |
+| `PhotoSketching/Enabled` | bool | ✅ |
+| `Filtering/Enabled`, `Filtering/Filters` | bool, JSON list `{layer_id, provider, field_name, filter_type, filter_name, sql_expression, field_has_multi_selection}`; the app needs `sql_expression` (it doesn't generate it) | ✅ same SQL templates as the plugin |
+| Selective sync: `mergin-config.json` in the project folder | `{"input-selective-sync": bool, "input-selective-sync-dir": "photos"}` | ✅ |
+| Snapping 2 needs QGIS snapping on (plugin warning QGIS_SNAPPING_NOT_ENABLED) | | ✅ turned on |
 
 Also: set a project full extent (Zoom to project), mark background/reference
 layers read-only and not identifiable, make non-spatial tables searchable.
@@ -137,3 +140,6 @@ ones already built into the design rules.
 | [mobile#4758](https://github.com/MerginMaps/mobile/issues/4758) | Value Map on a Date field doesn't show the saved value | Dropdowns only on text/integer fields | ✅ (render.py) |
 | [mobile#4696](https://github.com/MerginMaps/mobile/issues/4696), [#4549](https://github.com/MerginMaps/mobile/issues/4549) | Value Relation filter expressions unreliable (labels, dependent fields) | Avoid filtered/drill-down lookups, or test them on a phone | not generated |
 | [mobile#4053](https://github.com/MerginMaps/mobile/issues/4053), [#1496](https://github.com/MerginMaps/mobile/issues/1496) | "Reuse last value" misbehaves with lookups and defaults | Don't turn on reuse-last-value for those fields | n/a |
+| [mobile#4060](https://github.com/MerginMaps/mobile/issues/4060) | Turning selective sync on in a running project can leave phones in a "pending" state | Decide on selective sync when the project is created; avoid toggling it mid-survey | ✅ set at creation |
+| [qgis-plugin#899](https://github.com/MerginMaps/qgis-plugin/issues/899) | The selective sync folder isn't always saved from the Project Properties dialog | The script writes `mergin-config.json` directly | ✅ |
+| [mobile#4588](https://github.com/MerginMaps/mobile/issues/4588) | Position tracking stops while the screen is off on Android | Tell surveyors to keep the screen on while tracking (agent says so when tracking is on) | ✅ (agent rule) |

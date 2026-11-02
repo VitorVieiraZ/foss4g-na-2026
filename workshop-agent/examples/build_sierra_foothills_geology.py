@@ -38,6 +38,7 @@ Generated on: 2026-11-02
 ===============================================================================
 """
 
+import json
 import os
 import re
 import shutil
@@ -86,11 +87,40 @@ AREA_OF_INTEREST = [-121.2, 38.55, -120.75, 38.95]  # Folsom to Placerville, CA
 #   None     -> no background map
 BACKGROUND = "mergin"
 
-# --- Mergin Maps app settings ------------------------------------------------
+# --- Mergin Maps tab (Project > Properties > Mergin Maps) --------------------
+# The same options as that tab. None = "new": the plugin's default,
+#                                       "add": leave the project's setting as it is.
+#
 # Photo size saved by the app: 0 = original, 1 = high, 2 = medium, 3 = low
 PHOTO_QUALITY = 1
-# Snapping in the app: 0 = none, 1 = basic, 2 = follow QGIS snapping settings
+# Snapping in the app: 0 = none, 1 = basic (vertices and segments),
+# 2 = follow the QGIS snapping settings (the script turns QGIS snapping on)
 SNAPPING = 1
+# Position tracking: records the surveyor's route as lines in tracking_layer.gpkg
+POSITION_TRACKING = True
+# How often a position is recorded: 0 = best (often), 1 = normal, 2 = low
+TRACKING_FREQUENCY = 1
+# Map sketching: draw freehand notes on the map (saved in map_sketches.gpkg)
+MAP_SKETCHING = True
+# Colours offered for sketches (up to 7, hex)
+SKETCH_COLORS = None
+# Photo sketching: draw on photos after taking them
+PHOTO_SKETCHING = True
+# Layer order in the app: "qgis" (as in the Layers panel) or "alphabetical"
+LAYER_ORDER = 'qgis'
+# Selective sync: other devices don't download each other's files in this
+# folder (e.g. photos). Saves mobile data; photos stay on the server.
+SELECTIVE_SYNC = True
+SELECTIVE_SYNC_FOLDER = 'photos'
+# Filters: let surveyors filter features in the app, e.g. "only Poor trees".
+#   {"layer": "trees", "field": "condition", "name": "Condition"}
+#   "type" is worked out from the field (dropdown -> "Single select",
+#   checkbox -> "Checkbox", number -> "Number", date -> "Date", text -> "Text").
+# In "add" mode, filters can also use layers already in the project.
+FILTERS = [   {'layer': 'outcrops', 'field': 'rock_type', 'name': 'Rock type'},
+    {'layer': 'outcrops', 'field': 'created_by', 'name': 'Geologist'},
+    {'layer': 'map_units', 'field': 'unit', 'name': 'Geologic unit'}]
+
 # Folder (inside the project) where photos are saved
 PHOTO_FOLDER = "photos"
 # How photos are named (a QGIS expression; ".jpg" is added by the app).
@@ -267,6 +297,10 @@ from qgis.core import (
     QgsVectorLayerUtils,
     QgsVectorTileLayer,
     QgsWkbTypes,
+    QgsLineSymbol,
+    QgsProperty,
+    QgsSingleSymbolRenderer,
+    QgsSymbolLayer,
     QgsAttributeEditorField,
     QgsEditFormConfig,
     QgsExpression,
@@ -523,6 +557,189 @@ def link_photo_table(project, parent, child):
     project.relationManager().addRelation(relation)
 
 
+def special_layer(project, folder, filename, layer_name, geometry, fields):
+    """A GeoPackage the plugin would create for tracking or sketches."""
+    path = os.path.join(folder, filename)
+    if os.path.exists(path):
+        stop(f"{filename} already exists in the project folder but isn't in the project. "
+             "Add it back in QGIS, or move it away, then run again.")
+    CREATED_FILES.append(path)
+    qfields = QgsFields()
+    for name, kind in fields:
+        qfields.append(QgsField(name, _TYPES[kind]))
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.layerName = layer_name
+    writer = QgsVectorFileWriter.create(path, qfields, geometry, QgsCoordinateReferenceSystem("EPSG:4326"),
+                                        QgsProject.instance().transformContext(), options)
+    if writer.hasError() != WRITER_OK:
+        stop(f"could not create {path}: {writer.errorMessage()}")
+    del writer
+    layer = QgsVectorLayer(path, layer_name, "ogr")
+    make_read_only_fid(layer)
+    # Editable, clickable and searchable in the app (as the plugin sets them).
+    layer.setReadOnly(False)
+    layer.setFlags(layer.flags() | IDENTIFIABLE | SEARCHABLE)
+    return layer
+
+
+def line_symbol(color, width, data_defined=False):
+    symbol = QgsLineSymbol.createSimple({"line_color": color, "line_width": str(width)})
+    if data_defined:  # sketches: colour and width come from each sketch
+        symbol_layer = symbol.symbolLayer(0)
+        symbol_layer.setDataDefinedProperty(_enum(QgsSymbolLayer, "Property", "PropertyStrokeColor"),
+                                            QgsProperty.fromExpression('"color"'))
+        symbol_layer.setDataDefinedProperty(_enum(QgsSymbolLayer, "Property", "PropertyStrokeWidth"),
+                                            QgsProperty.fromExpression('"width"'))
+    return QgsSingleSymbolRenderer(symbol)
+
+
+def setup_tracking(project, folder):
+    """Position tracking: same layer the Mergin Maps plugin creates."""
+    existing, _ = project.readEntry("Mergin", "PositionTracking/TrackingLayer")
+    if existing and existing in project.mapLayers():
+        return  # the project already has one
+    layer = special_layer(project, folder, "tracking_layer.gpkg", "tracking_layer", _WKB.LineStringZM, [
+        ("tracking_start_time", "datetime"), ("tracking_end_time", "datetime"),
+        ("total_distance", "decimal"), ("tracked_by", "text")])
+    for name, expression in (("tracking_start_time", "@tracking_start_time"),
+                             ("tracking_end_time", "@tracking_end_time"),
+                             ("total_distance", "round($length, 2)"), ("tracked_by", "@mm_username")):
+        layer.setDefaultValueDefinition(layer.fields().indexOf(name), QgsDefaultValue(expression))
+    layer.setDisplayExpression("\"tracked_by\" ||' on '|| format_date( \"tracking_end_time\", 'dd MMM yyyy') "
+                               "||' at '|| format_date(\"tracking_end_time\", 'H:mm (t)')")
+    layer.setRenderer(line_symbol("#ffa500", 0.35))
+    add_layer(project, layer)
+    project.layerTreeRoot().insertLayer(0, layer)
+    project.writeEntry("Mergin", "PositionTracking/TrackingLayer", layer.id())
+    print("  + tracking     tracking_layer.gpkg")
+
+
+def setup_sketches(project, folder):
+    """Map sketching: same layer the Mergin Maps plugin creates."""
+    existing, _ = project.readEntry("Mergin", "MapSketching/Layer")
+    if existing and existing in project.mapLayers():
+        return
+    layer = special_layer(project, folder, "map_sketches.gpkg", "Map sketches", _WKB.MultiLineStringZM, [
+        ("color", "text"), ("author", "text"), ("created_at", "datetime"), ("width", "decimal"),
+        ("attr1", "decimal"), ("attr2", "decimal"), ("attr3", "text"), ("attr4", "text")])
+    for name, expression in (("author", "@mm_username"), ("created_at", "now()"), ("width", "0.6")):
+        layer.setDefaultValueDefinition(layer.fields().indexOf(name), QgsDefaultValue(expression))
+    layer.setRenderer(line_symbol("#ffffff", 0.6, data_defined=True))
+    add_layer(project, layer)
+    project.layerTreeRoot().insertLayer(0, layer)
+    project.writeEntry("Mergin", "MapSketching/Layer", layer.id())
+    print("  + sketches     map_sketches.gpkg")
+
+
+def filter_type(layer, field_name):
+    """Pick the filter kind from the field, as the plugin's filter list allows."""
+    field = layer.fields().field(field_name)
+    widget = layer.editorWidgetSetup(layer.fields().indexOf(field_name))
+    if widget.type() in ("ValueMap", "ValueRelation"):
+        return "Multi select" if widget.config().get("AllowMulti") else "Single select"
+    if widget.type() == "CheckBox" or field.typeName().lower() in ("boolean", "bool"):
+        return "Checkbox"
+    if field.isNumeric():
+        return "Number"
+    if field.typeName().lower() in ("date", "datetime"):
+        return "Date"
+    return "Text"
+
+
+def filter_sql(kind, field_name, multi):
+    """The SQL template the app fills in (copied from the plugin's field_filtering.py)."""
+    field = f'"{field_name}"'
+    if kind == "Text":
+        return f"CAST({field} AS CHARACTER) LIKE '%@@value@@%'"
+    if kind == "Number":
+        return f"CAST({field} AS FLOAT) >= @@value_from@@ AND CAST({field} AS FLOAT) <= @@value_to@@"
+    if kind == "Date":
+        return (f"CAST({field} AS CHARACTER) >= '@@value_from@@' AND "
+                f"CAST({field} AS CHARACTER) <= '@@value_to@@'")
+    if kind == "Checkbox":
+        return f"{field} = @@value@@"
+    if not multi:
+        return f"{field} IS @@value@@"
+    return (f"((',' || TRIM({field}, '{{}}') || ',' ) LIKE '%,' || @@value@@ || ',%')OR"
+            f"((',' || TRIM({field}, '{{}}') || ',' ) LIKE '%,\"' || @@value@@ || '\",%')")
+
+
+def setup_filters(project):
+    """Write the app's filter list (Mergin/Filtering/Filters)."""
+    current = json.loads(project.readEntry("Mergin", "Filtering/Filters", "[]")[0] or "[]")
+    for spec in FILTERS:
+        layer = project.mapLayersByName(spec["layer"])[0]
+        kind = spec.get("type") or filter_type(layer, spec["field"])
+        multi = bool(layer.editorWidgetSetup(layer.fields().indexOf(spec["field"])).config().get("AllowMulti"))
+        if any(f["layer_id"] == layer.id() and f["field_name"] == spec["field"] for f in current):
+            continue  # already there
+        current.append({
+            "layer_id": layer.id(), "provider": layer.dataProvider().name(),
+            "field_name": spec["field"], "filter_type": kind,
+            "filter_name": spec.get("name") or layer.attributeDisplayName(layer.fields().indexOf(spec["field"])),
+            "sql_expression": filter_sql(kind, spec["field"], multi),
+            "field_has_multi_selection": multi,
+        })
+    project.writeEntry("Mergin", "Filtering/Enabled", True)
+    project.writeEntry("Mergin", "Filtering/Filters", json.dumps(current))
+    print(f"  Filters in the app: {', '.join(f['filter_name'] for f in current)}")
+
+
+def write_selective_sync(folder):
+    """Selective sync lives in mergin-config.json in the project folder."""
+    path = os.path.join(folder, "mergin-config.json")
+    config = json.load(open(path)) if os.path.exists(path) else {}
+    config["input-selective-sync"] = bool(SELECTIVE_SYNC)
+    config["input-selective-sync-dir"] = SELECTIVE_SYNC_FOLDER if SELECTIVE_SYNC else ""
+    with open(path, "w") as out:
+        json.dump(config, out, indent=2)
+
+
+def apply_mergin_tab(project, folder):
+    """Fill in the Mergin Maps tab. In "add" mode only what you set changes."""
+    def wanted(value, default):
+        return default if value is None and MODE == "new" else value
+
+    quality = wanted(PHOTO_QUALITY, 1)
+    if quality is not None:
+        project.writeEntry("Mergin", "PhotoQuality", quality)
+    snapping = wanted(SNAPPING, 0)
+    if snapping is not None:
+        project.writeEntry("Mergin", "Snapping", snapping)
+        config = project.snappingConfig()
+        if snapping == 2 and not config.enabled():
+            config.setEnabled(True)  # "follow QGIS snapping" needs QGIS snapping on
+            project.setSnappingConfig(config)
+        elif snapping != 2 and config.enabled():
+            print("  Note: QGIS snapping is on but the app uses its own setting "
+                  f"({snapping}). Use SNAPPING = 2 to follow QGIS.")
+    order = wanted(LAYER_ORDER, "qgis")
+    if order is not None:
+        project.writeEntry("Mergin", "SortLayersMethod/Method", 0 if order == "qgis" else 1)
+    if wanted(PHOTO_SKETCHING, False) is not None:
+        project.writeEntry("Mergin", "PhotoSketching/Enabled", bool(wanted(PHOTO_SKETCHING, False)))
+    tracking = wanted(POSITION_TRACKING, False)
+    if tracking is not None:
+        project.writeEntry("Mergin", "PositionTracking/Enabled", bool(tracking))
+        project.writeEntry("Mergin", "PositionTracking/UpdateFrequency",
+                           1 if TRACKING_FREQUENCY is None else TRACKING_FREQUENCY)
+        if tracking:
+            setup_tracking(project, folder)
+    sketching = wanted(MAP_SKETCHING, False)
+    if sketching is not None:
+        project.writeEntry("Mergin", "MapSketching/Enabled", bool(sketching))
+        if sketching:
+            project.writeEntry("Mergin", "MapSketching/Colors", SKETCH_COLORS or DEFAULT_SKETCH_COLORS)
+            setup_sketches(project, folder)
+    if FILTERS:
+        setup_filters(project)
+
+
+# The plugin's default sketch colours.
+DEFAULT_SKETCH_COLORS = ["#ffffff", "#12181f", "#5e9ee4", "#57b46f", "#fdcb2a", "#ff9c40", "#ff8f93"]
+
+
 def make_read_only_fid(layer):
     """'fid' is managed by GeoPackage and Mergin Maps: hide it from the form."""
     idx = layer.fields().indexOf("fid")
@@ -594,6 +811,39 @@ def preflight(project):
     for name in names:
         if name.startswith(("gpkg_", "rtree_", "sqlite_")):
             stop(f"'{name}' starts with a name GeoPackage reserves. Pick another name.")
+    for name in names:
+        if name in ("tracking_layer", "map_sketches"):
+            stop(f"'{name}' is used by Mergin Maps for tracking/sketches. Pick another name.")
+
+    # Mergin Maps tab values.
+    checks = [(PHOTO_QUALITY, (0, 1, 2, 3), "PHOTO_QUALITY"), (SNAPPING, (0, 1, 2), "SNAPPING"),
+              (TRACKING_FREQUENCY, (0, 1, 2), "TRACKING_FREQUENCY"),
+              (LAYER_ORDER, ("qgis", "alphabetical"), "LAYER_ORDER")]
+    for value, allowed, label in checks:
+        if value is not None and value not in allowed:
+            stop(f"{label} must be one of {allowed} (or None).")
+    for color in SKETCH_COLORS or []:
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(color)):
+            stop(f"sketch colour {color!r} should look like #5e9ee4.")
+    if SELECTIVE_SYNC and not re.fullmatch(r"[\w.\- /]*", SELECTIVE_SYNC_FOLDER or ""):
+        stop("SELECTIVE_SYNC_FOLDER should be a folder inside the project, like 'photos'.")
+    existing_layers = {l.name(): l for l in project.mapLayers().values()} if MODE == "add" else {}
+    for f in FILTERS:
+        spec = next((l for l in LAYERS if l["name"] == f.get("layer")), None)
+        if spec:
+            field_names = [x["name"] for x in spec["fields"]] + [x["name"] for x in tracking_fields()]
+        elif f.get("layer") in existing_layers:
+            field_names = existing_layers[f["layer"]].fields().names()
+        else:
+            stop(f"filter: there is no layer called {f.get('layer')!r}.")
+        if f.get("field") not in field_names:
+            stop(f"filter: layer {f['layer']!r} has no field {f.get('field')!r}.")
+        if f.get("type") and f["type"] not in ("Text", "Number", "Date", "Checkbox",
+                                               "Single select", "Multi select"):
+            stop(f"filter: unknown type {f['type']!r}.")
+    if MODE == "new" and not LAYERS:
+        stop("LAYERS is empty: a new project needs at least one layer.")
+
     for layer in LAYERS:
         if layer.get("geometry") not in GEOMETRY:
             stop(f"{layer['name']}: geometry must be one of {', '.join(GEOMETRY)}.")
@@ -778,14 +1028,6 @@ def build():
     project.setPresetHomePath("")
     if MODE == "new":
         add_background(project)
-        project.writeEntry("Mergin", "PhotoQuality", PHOTO_QUALITY)
-        project.writeEntry("Mergin", "Snapping", SNAPPING)
-        if SNAPPING == 2:
-            # "Follow QGIS snapping" only works if QGIS snapping is on.
-            snapping = project.snappingConfig()
-            snapping.setEnabled(True)
-            project.setSnappingConfig(snapping)
-        project.writeEntry("Mergin", "SortLayersMethod/Method", 0)  # keep QGIS layer order
         # "Zoom to project" extent in the app.
         if AREA_OF_INTEREST:
             west, south, east, north = AREA_OF_INTEREST
@@ -793,15 +1035,16 @@ def build():
             extent = to_project.transformBoundingBox(QgsRectangle(west, south, east, north))
             project.viewSettings().setPresetFullExtent(QgsReferencedRectangle(extent, crs))
     else:
-        # Your project's own settings (CRS, background, extent, app settings)
-        # are left as they are. Only add what is missing.
-        if not project.readNumEntry("Mergin", "PhotoQuality")[1]:
-            project.writeEntry("Mergin", "PhotoQuality", PHOTO_QUALITY)
-        print("  Existing layers, data and project settings were not changed.")
+        # Your project's CRS, background and extent are left as they are.
+        print("  Existing layers and data were not changed.")
+    # The Mergin Maps tab (photo quality, snapping, tracking, sketching, ...).
+    apply_mergin_tab(project, folder)
 
     # Step 8 · Save ------------------------------------------------------------
     if not project.write():
         stop(f"could not save {project.fileName()}")
+    if SELECTIVE_SYNC is not None:
+        write_selective_sync(folder)
 
     # If this runs inside QGIS, zoom the map to the area of interest.
     try:

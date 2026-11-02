@@ -40,8 +40,9 @@ What happens:
 - **Existing** (`"mode": "add"`): open your Mergin Maps project in QGIS, then
   run the script. It only adds new GeoPackages and layers. Existing layers,
   data, CRS, background and settings are left alone, and it stops before
-  writing anything if a name already exists. The `.qgz` is backed up to the
-  temp folder first. Then sync with the plugin.
+  writing anything if a name already exists. The `.qgz` is backed up to
+  `~/MerginMaps backups/` first. If anything fails halfway, the run removes
+  what it created. Then sync with the plugin.
 
 ## Safety
 
@@ -54,7 +55,8 @@ The scripts enforce part of this:
 - `render.py` rejects unsafe values (`..` paths, odd names, bad CRS) and won't
   overwrite without `--force`.
 - `run_in_qgis.py` only builds inside the temp folder.
-- The build script checks everything before writing the first file.
+- The build script checks everything (names, types, expressions) before
+  writing the first file, and undoes its own changes if something fails.
 
 Full rules: "Safety rules" in `SKILL.md`.
 
@@ -89,6 +91,10 @@ workshop-agent/
 - one photo per feature (a photo field) or a **gallery** (`multiple_photos`):
   a `<layer>_photos.gpkg` table linked to the layer's `uuid`, as in the docs
 - rules with your own messages (hard = can't save, soft = warning)
+- the whole **Mergin Maps tab**: photo quality, snapping, position tracking,
+  map and photo sketching, layer order, filters, selective sync. Tracking and
+  sketch layers are built with the plugin's own recipe. In "add" mode a spec can
+  change only these settings on an existing project.
 - workarounds for known bugs (hidden fid, min/max on numbers, …)
 - project extent, layer order, read-only background, one `.qgz`
 
@@ -106,5 +112,4 @@ round trip.
 ## Not generated yet
 
 Other 1-N relations (e.g. repeat inspections), drill-down lists,
-conditional visibility and tabs, tracking, map sketching, offline basemaps,
-selective sync. The agent explains the manual QGIS steps.
+conditional visibility and tabs, offline basemaps. The agent explains the manual QGIS steps.

@@ -13,8 +13,34 @@
     "label": "Folsom to Placerville, CA"
   },
   "background": "mergin",
-  "photo_quality": 1,
-  "snapping": 1,
+  "app_settings": {
+    "photo_quality": 1,
+    "position_tracking": true,
+    "tracking_frequency": "normal",
+    "map_sketching": true,
+    "photo_sketching": true,
+    "layer_order": "qgis",
+    "selective_sync": true,
+    "selective_sync_folder": "photos",
+    "filters": [
+      {
+        "layer": "outcrops",
+        "field": "rock_type",
+        "name": "Rock type"
+      },
+      {
+        "layer": "outcrops",
+        "field": "created_by",
+        "name": "Geologist"
+      },
+      {
+        "layer": "map_units",
+        "field": "unit",
+        "name": "Geologic unit"
+      }
+    ],
+    "snapping": 1
+  },
   "lookup_lists": {
     "geologic_units": [
       "Mehrten Formation",

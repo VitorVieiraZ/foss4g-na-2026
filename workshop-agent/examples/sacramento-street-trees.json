@@ -3,27 +3,153 @@
   "project_name": "sacramento-street-trees",
   "qgis_version": "3.42",
   "crs": "EPSG:4326",
-  "area_of_interest": {"bbox": [-121.56, 38.43, -121.36, 38.69], "label": "Sacramento, CA"},
+  "area_of_interest": {
+    "bbox": [
+      -121.56,
+      38.43,
+      -121.36,
+      38.69
+    ],
+    "label": "Sacramento, CA"
+  },
   "background": "mergin",
-  "photo_quality": 1,
-  "snapping": 0,
+  "app_settings": {
+    "photo_quality": 1,
+    "filters": [
+      {
+        "layer": "trees",
+        "field": "condition",
+        "name": "Condition"
+      },
+      {
+        "layer": "trees",
+        "field": "needs_pruning",
+        "name": "Needs pruning"
+      }
+    ],
+    "snapping": 0
+  },
   "lookup_lists": {
-    "tree_species": ["Valley oak", "London plane", "Chinese pistache", "Crape myrtle", "Coast redwood", "Unknown"]
+    "tree_species": [
+      "Valley oak",
+      "London plane",
+      "Chinese pistache",
+      "Crape myrtle",
+      "Coast redwood",
+      "Unknown"
+    ]
   },
   "layers": [
-    {"name": "trees", "geometry": "point", "title": "species", "color": "#1db278", "fields": [
-      {"name": "species", "type": "text", "alias": "Species", "widget": "lookup", "list": "tree_species", "required": true},
-      {"name": "condition", "type": "text", "alias": "Condition", "widget": "dropdown", "choices": ["Good", "Fair", "Poor", "Dead"], "required": true},
-      {"name": "height_m", "type": "decimal", "alias": "Height (m)", "widget": "number", "min": 0, "max": 80},
-      {"name": "needs_pruning", "type": "boolean", "alias": "Needs pruning?", "widget": "checkbox"},
-      {"name": "photo", "type": "text", "alias": "Photo", "widget": "photo"},
-      {"name": "notes", "type": "text", "alias": "Notes", "widget": "notes"}]},
-    {"name": "sidewalk_damage", "geometry": "line", "title": "severity", "color": "#c2410c", "fields": [
-      {"name": "severity", "type": "text", "alias": "Severity", "widget": "dropdown", "choices": ["Minor", "Moderate", "Severe"], "required": true},
-      {"name": "inspected_on", "type": "date", "alias": "Inspected on", "widget": "date", "default": "now()"},
-      {"name": "photo", "type": "text", "alias": "Photo", "widget": "photo"}]},
-    {"name": "planting_sites", "geometry": "polygon", "title": "site_name", "color": "#f6a463", "fields": [
-      {"name": "site_name", "type": "text", "alias": "Site name", "widget": "text", "required": true},
-      {"name": "trees_possible", "type": "integer", "alias": "Trees that fit", "widget": "number", "min": 0, "max": 500}]}
+    {
+      "name": "trees",
+      "geometry": "point",
+      "title": "species",
+      "color": "#1db278",
+      "fields": [
+        {
+          "name": "species",
+          "type": "text",
+          "alias": "Species",
+          "widget": "lookup",
+          "list": "tree_species",
+          "required": true
+        },
+        {
+          "name": "condition",
+          "type": "text",
+          "alias": "Condition",
+          "widget": "dropdown",
+          "choices": [
+            "Good",
+            "Fair",
+            "Poor",
+            "Dead"
+          ],
+          "required": true
+        },
+        {
+          "name": "height_m",
+          "type": "decimal",
+          "alias": "Height (m)",
+          "widget": "number",
+          "min": 0,
+          "max": 80
+        },
+        {
+          "name": "needs_pruning",
+          "type": "boolean",
+          "alias": "Needs pruning?",
+          "widget": "checkbox"
+        },
+        {
+          "name": "photo",
+          "type": "text",
+          "alias": "Photo",
+          "widget": "photo"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "alias": "Notes",
+          "widget": "notes"
+        }
+      ]
+    },
+    {
+      "name": "sidewalk_damage",
+      "geometry": "line",
+      "title": "severity",
+      "color": "#c2410c",
+      "fields": [
+        {
+          "name": "severity",
+          "type": "text",
+          "alias": "Severity",
+          "widget": "dropdown",
+          "choices": [
+            "Minor",
+            "Moderate",
+            "Severe"
+          ],
+          "required": true
+        },
+        {
+          "name": "inspected_on",
+          "type": "date",
+          "alias": "Inspected on",
+          "widget": "date",
+          "default": "now()"
+        },
+        {
+          "name": "photo",
+          "type": "text",
+          "alias": "Photo",
+          "widget": "photo"
+        }
+      ]
+    },
+    {
+      "name": "planting_sites",
+      "geometry": "polygon",
+      "title": "site_name",
+      "color": "#f6a463",
+      "fields": [
+        {
+          "name": "site_name",
+          "type": "text",
+          "alias": "Site name",
+          "widget": "text",
+          "required": true
+        },
+        {
+          "name": "trees_possible",
+          "type": "integer",
+          "alias": "Trees that fit",
+          "widget": "number",
+          "min": 0,
+          "max": 500
+        }
+      ]
+    }
   ]
 }
