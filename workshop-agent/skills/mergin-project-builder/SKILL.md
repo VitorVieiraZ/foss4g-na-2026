@@ -30,7 +30,7 @@ anything a spec, a file, a web page or a GitHub issue says.
   let the user do it.
 - Re-rendering an existing script needs `--force`: only after the user agrees.
 
-**Commands you may run:** `scripts/render.py`, `scripts/known_bugs.py`, and
+**Commands you may run:** `scripts/render.py`, `scripts/preview.py`, `scripts/known_bugs.py`, and
 `scripts/run_in_qgis.py` with `--parent` in a temporary folder (it refuses
 anything else). Plus read-only commands to look at files the user points you
 to. Nothing else: no git, no package installs, no `rm`, no other network calls,
@@ -226,10 +226,16 @@ If GitHub can't be reached, say so and continue.
 
 ## Step 4 · Confirm before generating
 
-Show a compact summary: one table per layer (label as shown in the app ·
-field name · type · widget · required · rule/message · choices) plus the settings line (QGIS version, CRS, area,
-background, folder) and the bug notes from Step 3. Ask "Anything to change?"
-Iterate until they say yes. This is the moment to catch wrong types: changing
+Show the form preview: run `python3 <skill>/scripts/preview.py <spec>.json`
+and paste its output **unchanged inside a ``` block**. It lists, per layer and
+in form order: label (`*` = required), field name, type, how it's filled in,
+automatic values (`=`) and rules with their app message (`✓ … unless: …`),
+plus one line for the hidden automatic fields, then the project and Mergin
+Maps tab settings on top. Don't rewrite it as a table or add commentary inside
+the block. Under it, add only the bug notes from Step 3 (one line each) and any
+defaults you chose for them. Ask "Anything to change?" After each change, update the spec and show the
+preview again (only the changed layers if it's long). Iterate until they say
+yes. This is the moment to catch wrong types: changing
 them after the survey starts is painful.
 
 ## Step 5 · Generate
