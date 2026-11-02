@@ -196,6 +196,7 @@ for what is missing or unclear, in this order (skip what they told you):
 | Automatic fields | uuid, created_at/by, updated_at/by, gps_accuracy (points) |
 | Spare fields | 2 text, 1 integer, 1 decimal, 1 date (hidden) |
 | Field names | from their wording: lowercase, `_`, no units in brackets (`height_m`) |
+| Aliases (form labels) | always set one per visible field: short, plain, sentence case, units in brackets, "?" for yes/no: `photo` → "Photo", `height_m` → "Height (m)", `needs_pruning` → "Needs pruning?", `dbh_cm` → "DBH (cm)". Use the surveyors' own words when they gave them. If you leave one out, render.py makes one from the name the same way. |
 
 ## Step 3 · Review known bugs
 
@@ -225,8 +226,8 @@ If GitHub can't be reached, say so and continue.
 
 ## Step 4 · Confirm before generating
 
-Show a compact summary: one table per layer (field · type · widget · required ·
-rule/message · choices) plus the settings line (QGIS version, CRS, area,
+Show a compact summary: one table per layer (label as shown in the app ·
+field name · type · widget · required · rule/message · choices) plus the settings line (QGIS version, CRS, area,
 background, folder) and the bug notes from Step 3. Ask "Anything to change?"
 Iterate until they say yes. This is the moment to catch wrong types: changing
 them after the survey starts is painful.

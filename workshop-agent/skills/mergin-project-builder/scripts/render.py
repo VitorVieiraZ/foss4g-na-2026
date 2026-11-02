@@ -183,6 +183,39 @@ def app_settings(spec):
     return app
 
 
+# Readable labels for field names: photo -> "Photo", height_m -> "Height (m)",
+# needs_pruning (checkbox) -> "Needs pruning?", gps_id -> "GPS ID".
+ALIAS_UNITS = {"m": "m", "cm": "cm", "mm": "mm", "km": "km", "ft": "ft", "in": "in", "mi": "mi",
+               "m2": "m²", "ha": "ha", "ac": "acres", "deg": "°", "pct": "%", "percent": "%",
+               "kg": "kg", "g": "g", "lb": "lb", "c": "°C", "f": "°F", "ms": "m/s", "l": "L"}
+ALIAS_WORDS = {"id": "ID", "gps": "GPS", "dbh": "DBH", "uuid": "UUID", "url": "URL",
+               "gis": "GIS", "qa": "QA", "qc": "QC", "ph": "pH", "no": "number"}
+
+
+def default_alias(field):
+    """A form label made from the field name, used when no alias is given."""
+    words = field["name"].split("_")
+    unit = ""
+    if len(words) > 1 and words[-1] in ALIAS_UNITS:
+        unit = f" ({ALIAS_UNITS[words.pop()]})"
+    first_is_special = words[0] in ALIAS_WORDS
+    words = [ALIAS_WORDS.get(w, w) for w in words]
+    label = " ".join(words)
+    if not first_is_special:  # keep "pH", "GPS" as they are
+        label = label[:1].upper() + label[1:]
+    if field.get("widget") == "checkbox" and not label.endswith("?"):
+        label += "?"
+    return label + unit
+
+
+def fill_aliases(spec):
+    """Give every visible field a label, so SECTION 1 shows what people will see."""
+    for layer in spec.get("layers", []):
+        for f in layer.get("fields", []):
+            if not f.get("alias") and f.get("widget", "text") != "hidden":
+                f["alias"] = default_alias(f)
+
+
 def plain(text):
     """Text for comments/docstrings: one line, no quotes or backslashes."""
     return re.sub(r'["\\\n\r]', "", str(text))[:80]
@@ -192,6 +225,7 @@ def main(spec_path, out_path, force=False):
     spec = json.load(open(spec_path, encoding="utf-8"))
     check_settings(spec)
     check_spec(spec)
+    fill_aliases(spec)
     skill_dir = os.path.realpath(os.path.join(HERE, ".."))
     target = os.path.realpath(out_path)
     if not target.endswith(".py"):

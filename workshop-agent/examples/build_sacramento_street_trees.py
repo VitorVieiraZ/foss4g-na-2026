@@ -164,7 +164,8 @@ LOOKUP_LISTS = {   'tree_species': [   'Valley oak',
 #   "name"     column name: lowercase, no spaces, never rename it later
 #              (change the "alias" instead)
 #   "type"     "text", "integer", "decimal", "date", "datetime" or "boolean"
-#   "alias"    the label people see in the form
+#   "alias"    the label people see in the form (optional: without it the
+#              name is turned into a label, e.g. height_m -> "Height (m)")
 #   "widget"   how the field is filled in:
 #              "text"      free text, one line
 #              "notes"     free text, several lines
@@ -405,13 +406,39 @@ def create_geopackage(folder, name, geometry, fields, crs):
     return layer
 
 
+# Readable labels for field names: photo -> "Photo", height_m -> "Height (m)",
+# needs_pruning (checkbox) -> "Needs pruning?", gps_id -> "GPS ID".
+ALIAS_UNITS = {"m": "m", "cm": "cm", "mm": "mm", "km": "km", "ft": "ft", "in": "in", "mi": "mi",
+               "m2": "m²", "ha": "ha", "ac": "acres", "deg": "°", "pct": "%", "percent": "%",
+               "kg": "kg", "g": "g", "lb": "lb", "c": "°C", "f": "°F", "ms": "m/s", "l": "L"}
+ALIAS_WORDS = {"id": "ID", "gps": "GPS", "dbh": "DBH", "uuid": "UUID", "url": "URL",
+               "gis": "GIS", "qa": "QA", "qc": "QC", "ph": "pH", "no": "number"}
+
+
+def default_alias(field):
+    """A form label made from the field name, used when no alias is given."""
+    words = field["name"].split("_")
+    unit = ""
+    if len(words) > 1 and words[-1] in ALIAS_UNITS:
+        unit = f" ({ALIAS_UNITS[words.pop()]})"
+    first_is_special = words[0] in ALIAS_WORDS
+    words = [ALIAS_WORDS.get(w, w) for w in words]
+    label = " ".join(words)
+    if not first_is_special:  # keep "pH", "GPS" as they are
+        label = label[:1].upper() + label[1:]
+    if field.get("widget") == "checkbox" and not label.endswith("?"):
+        label += "?"
+    return label + unit
+
+
 def setup_field(layer, field, lookup_layers):
     """Set the alias, form widget, default value and constraint of one field."""
     idx = layer.fields().indexOf(field["name"])
     widget = field.get("widget", "text")
 
-    if field.get("alias"):
-        layer.setFieldAlias(idx, field["alias"])
+    # Form label: your alias, or a readable one made from the name.
+    if field.get("alias") or widget != "hidden":
+        layer.setFieldAlias(idx, field.get("alias") or default_alias(field))
 
     # --- form widget ---
     if widget == "hidden":
