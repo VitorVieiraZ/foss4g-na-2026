@@ -4,20 +4,38 @@ A Claude skill that designs a Mergin Maps survey project with you, then writes a
 **commented PyQGIS script** you run inside QGIS to build it. Claude never
 touches QGIS directly: you see and run every step.
 
-## Use it
+## Install (workshop attendees)
 
-In this repo, ask Claude Code something like:
+You need [Claude Code](https://claude.com/claude-code). In Claude Code, run:
+
+```
+/plugin marketplace add VitorVieiraZ/foss4g-na-2026
+/plugin install mergin-workshop-agent@mergin-workshop
+```
+
+Restart Claude Code, then ask something like:
 
 > Build me a Mergin Maps project to survey street trees in Sacramento.
 
-Or call it by name: `/mergin-project-builder`. The skill is linked from
-`.claude/skills/mergin-project-builder` (local only, `.claude/` is git-ignored).
+You can also call it by name: `/mergin-workshop-agent:mergin-project-builder`.
+Get updates with `/plugin marketplace update mergin-workshop`.
 
-Elsewhere, load the folder as a plugin:
+No Claude Code? Use the scripts directly: copy
+`skills/mergin-project-builder/templates/build_project.py` (or an example from
+`examples/`), edit SECTION 1, and run it in the QGIS Python Console.
 
-```bash
-claude --plugin-dir "/Users/vmstar/Dev/FOSS4G NA 2026/workshop-agent"
-```
+## Maintainer notes
+
+- The marketplace file is at the repo root (`.claude-plugin/marketplace.json`)
+  and points at this folder; the plugin manifest is
+  `workshop-agent/.claude-plugin/plugin.json`. Installing copies only this folder.
+- In the repo itself, the skill is also linked from
+  `.claude/skills/mergin-project-builder` (local only, git-ignored), so
+  `/mergin-project-builder` works without installing.
+- Try a local copy without installing: `claude --plugin-dir workshop-agent`
+- Release: bump `version` in both manifests, run `claude plugin validate .`
+  from the repo root, push. (Checked 2026-11-02: validation passes and a fresh
+  install works.)
 
 What happens:
 1. It asks your QGIS version, and asks you to describe the project in your own
