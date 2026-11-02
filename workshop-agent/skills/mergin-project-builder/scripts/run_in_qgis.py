@@ -10,6 +10,7 @@ import argparse
 import os
 import re
 import sys
+import tempfile
 
 from qgis.core import QgsApplication, QgsProject
 
@@ -20,6 +21,14 @@ args = argparse.ArgumentParser()
 args.add_argument("script")
 args.add_argument("--parent", required=True)
 opts = args.parse_args()
+
+# Tests only ever build inside a temporary folder, never in real project folders.
+temp_roots = {os.path.realpath(tempfile.gettempdir()), os.path.realpath("/tmp"), os.path.realpath("/private/tmp")}
+parent = os.path.realpath(opts.parent)
+if not any(parent == r or parent.startswith(r + os.sep) for r in temp_roots):
+    sys.exit(f"run_in_qgis.py: --parent must be inside a temporary folder ({tempfile.gettempdir()})")
+if re.search(r'(?m)^MODE = "add"', open(opts.script).read()):
+    sys.exit("run_in_qgis.py: tests 'new' mode only. For 'add', test on a copy (see SKILL.md).")
 
 prefix = os.environ.get("QGIS_PREFIX_PATH", "/Applications/QGIS.app/Contents/MacOS")
 QgsApplication.setPrefixPath(prefix, True)

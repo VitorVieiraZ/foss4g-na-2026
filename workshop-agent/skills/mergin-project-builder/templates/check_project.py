@@ -20,7 +20,12 @@ warnings the Mergin Maps QGIS plugin shows when you sync.
 import os
 import re
 
-from qgis.core import QgsMapLayer, QgsProject
+from qgis.core import Qgis, QgsExpression, QgsMapLayer, QgsProject, QgsVectorDataProvider
+
+# QGIS 4 names first, QGIS 3 names as a fallback.
+VECTOR = Qgis.LayerType.Vector if hasattr(Qgis, "LayerType") else QgsMapLayer.VectorLayer
+_caps = getattr(Qgis, "VectorProviderCapability", None) or getattr(QgsVectorDataProvider, "Capability", QgsVectorDataProvider)
+ADD_FEATURES, CHANGE_VALUES = _caps.AddFeatures, _caps.ChangeAttributeValues
 
 project = QgsProject.instance()
 folder = project.homePath()
@@ -38,7 +43,10 @@ def look_at(msg):
 def inside_project(path):
     """True if path is inside the project folder."""
     path = os.path.realpath(path)
-    return os.path.commonpath([path, os.path.realpath(folder)]) == os.path.realpath(folder)
+    try:
+        return os.path.commonpath([path, os.path.realpath(folder)]) == os.path.realpath(folder)
+    except ValueError:  # different drives on Windows
+        return False
 
 
 if not project.fileName():
@@ -46,7 +54,7 @@ if not project.fileName():
 
 # 1 · Exactly one QGIS project file in the folder ------------------------------
 project_files = [os.path.join(d, f) for d, _, files in os.walk(folder) for f in files
-                 if f.lower().endswith((".qgs", ".qgz")) and ".mergin" not in d]
+                 if f.lower().endswith((".qgs", ".qgz")) and ".mergin" not in os.path.relpath(d, folder).split(os.sep)]
 if len(project_files) > 1:
     must_fix("More than one .qgs/.qgz file in the project folder: keep only one.")
 else:
@@ -73,11 +81,11 @@ for layer in project.mapLayers().values():
     if provider in ("ogr", "gdal") and os.path.exists(source) and not inside_project(source):
         must_fix(f"'{name}' is outside the project folder: {source}")
 
-    if layer.type() != QgsMapLayer.VectorLayer:
+    if layer.type() != VECTOR:
         continue
     dp = layer.dataProvider()
     caps = dp.capabilities()
-    can_edit = bool(caps & dp.AddFeatures) or bool(caps & dp.ChangeAttributeValues)
+    can_edit = bool(caps & ADD_FEATURES) or bool(caps & CHANGE_VALUES)
     if can_edit and not layer.readOnly():
         editable += 1
         if dp.storageType() != "GPKG":
@@ -100,6 +108,13 @@ for layer in project.mapLayers().values():
         look_at(f"'{name}' has no uuid field. Add one (default uuid()) if anything links to it.")
 
     for i in range(fields.count()):
+        # Expressions that don't parse break forms in the app.
+        constraint = fields.field(i).constraints().constraintExpression()
+        default = layer.defaultValueDefinition(i).expression()
+        for kind, text in (("rule", constraint), ("default value", default)):
+            if text and QgsExpression(text).hasParserError():
+                must_fix(f"'{name}.{names[i]}': the {kind} expression is not valid: "
+                         f"{QgsExpression(text).parserErrorString()}")
         setup = layer.editorWidgetSetup(i)
         kind, cfg = setup.type(), setup.config()
 

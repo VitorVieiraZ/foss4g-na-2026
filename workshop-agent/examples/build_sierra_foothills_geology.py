@@ -39,12 +39,22 @@ Generated on: 2026-11-02
 """
 
 import os
+import re
+import shutil
+import time
 
 # =============================================================================
 # SECTION 1 · SETTINGS  (edit here)
 # =============================================================================
 
-# --- Where to create the project ---------------------------------------------
+# --- New project, or add to one you already have? ----------------------------
+#   "new" -> create a new project folder (start QGIS with an empty project)
+#   "add" -> add these layers to the project OPEN in QGIS right now, e.g. one
+#            you downloaded with the Mergin Maps plugin. Existing layers,
+#            data and settings are never changed; only new .gpkg files are added.
+MODE = "new"
+
+# --- Where to create the project ("new" mode only) ---------------------------
 # The project folder is created INSIDE this folder. Use a local drive:
 # network drives are not supported by Mergin Maps.
 # os.path.expanduser("~") is your home folder (works on Windows, macOS and Linux).
@@ -54,6 +64,8 @@ PARENT_FOLDER = os.path.join(os.path.expanduser("~"), "MerginMaps Projects")
 # Tip: you choose the Mergin Maps project name when you upload it, and that
 # name cannot be changed later, so pick it carefully.
 PROJECT_NAME = "sierra-foothills-geology"
+# Title shown in QGIS (Project > Properties).
+TITLE = "Sierra foothills geology mapping"
 
 # --- Coordinate reference system ---------------------------------------------
 # Used for the project and for the new layers.
@@ -254,6 +266,10 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorLayerUtils,
     QgsVectorTileLayer,
+    QgsWkbTypes,
+    QgsAttributeEditorField,
+    QgsEditFormConfig,
+    QgsExpression,
 )
 from qgis.PyQt.QtGui import QColor
 
@@ -292,20 +308,49 @@ def _enum(owner, scoped, name):
     return getattr(owner, name)
 
 
-GEOMETRY = {
-    "point": _enum(Qgis, "WkbType", "Point") if hasattr(Qgis, "WkbType") else 1,
-    "line": _enum(Qgis, "WkbType", "LineString") if hasattr(Qgis, "WkbType") else 2,
-    "polygon": _enum(Qgis, "WkbType", "Polygon") if hasattr(Qgis, "WkbType") else 3,
-    "none": _enum(Qgis, "WkbType", "NoGeometry") if hasattr(Qgis, "WkbType") else 100,
-}
+_WKB = Qgis.WkbType if hasattr(Qgis, "WkbType") else QgsWkbTypes  # QgsWkbTypes before 3.30
+GEOMETRY = {"point": _WKB.Point, "line": _WKB.LineString,
+            "polygon": _WKB.Polygon, "none": _WKB.NoGeometry}
 NOT_NULL = _enum(QgsFieldConstraints, "Constraint", "ConstraintNotNull")
 EXPRESSION = _enum(QgsFieldConstraints, "Constraint", "ConstraintExpression")
 HARD = _enum(QgsFieldConstraints, "ConstraintStrength", "ConstraintStrengthHard")
 SOFT = _enum(QgsFieldConstraints, "ConstraintStrength", "ConstraintStrengthSoft")
+IDENTIFIABLE = _enum(QgsMapLayer, "LayerFlag", "Identifiable")
+SEARCHABLE = _enum(QgsMapLayer, "LayerFlag", "Searchable")
+WRITER_OK = _enum(QgsVectorFileWriter, "WriterError", "NoError")
+
+
+# Everything this script creates is recorded here, so that if something goes
+# wrong halfway, undo() can remove exactly that and nothing else.
+CREATED_FILES = []    # .gpkg files and folders we created
+ADDED_LAYER_IDS = []  # layers we added to the project
+
+
+def add_layer(project, layer):
+    """Add a layer to the project (not yet to the layer list) and remember it."""
+    project.addMapLayer(layer, False)
+    ADDED_LAYER_IDS.append(layer.id())
+
+
+def undo(project):
+    """Remove what this run added: new layers, new files. Nothing else."""
+    if not CREATED_FILES and not ADDED_LAYER_IDS:
+        return  # stopped before anything was created
+    project.removeMapLayers(ADDED_LAYER_IDS)
+    if MODE == "add" and project.fileName():
+        project.read(project.fileName())  # back to the saved project file
+    else:
+        project.clear()  # "new" mode started from an empty project
+    for path in reversed(CREATED_FILES):
+        for p in (path, path + "-wal", path + "-shm"):
+            if os.path.isfile(p):
+                os.remove(p)
+        if os.path.isdir(path) and not os.listdir(path):
+            os.rmdir(path)  # only folders we created, and only if empty
 
 
 def stop(message):
-    """Stop the script with a clear message (nothing half-built is left behind)."""
+    """Stop the script with a clear message (what was created is removed again)."""
     raise RuntimeError("\n\n  STOPPED: " + message + "\n")
 
 
@@ -334,6 +379,7 @@ def spare_fields():
 def create_geopackage(folder, name, geometry, fields, crs):
     """Create <folder>/<name>.gpkg holding ONE layer called <name>."""
     path = os.path.join(folder, name + ".gpkg")
+    CREATED_FILES.append(path)
     qfields = QgsFields()
     for f in fields:
         qfields.append(QgsField(f["name"], _TYPES[f["type"]]))
@@ -344,7 +390,7 @@ def create_geopackage(folder, name, geometry, fields, crs):
         path, qfields, GEOMETRY[geometry], crs,
         QgsProject.instance().transformContext(), options,
     )
-    if writer.hasError() != QgsVectorFileWriter.NoError:
+    if writer.hasError() != WRITER_OK:
         stop(f"could not create {path}: {writer.errorMessage()}")
     del writer  # closing the writer finishes writing the file
     layer = QgsVectorLayer(f"{path}|layername={name}", name, "ogr")
@@ -447,6 +493,19 @@ def photo_table_fields():
     ]
 
 
+def photo_table_form(child):
+    """A fixed form with only Photo and Caption. With an automatic form, the
+    app would show external_pk as a 'Feature' picker (mobile app
+    attributecontroller.cpp, discoverRelations); the app still fills it in."""
+    config = child.editFormConfig()
+    config.setLayout(_enum(QgsEditFormConfig, "EditorLayout", "TabLayout"))
+    root = config.invisibleRootContainer()
+    root.clear()
+    for name in ("photo", "caption"):
+        root.addChildElement(QgsAttributeEditorField(name, child.fields().indexOf(name), root))
+    child.setEditFormConfig(config)
+
+
 def link_photo_table(project, parent, child):
     """Relation parent.uuid -> child.external_pk (never fid: it can change on sync)."""
     relation = QgsRelation()
@@ -457,7 +516,8 @@ def link_photo_table(project, parent, child):
     relation.addFieldPair("external_pk", "uuid")  # (child field, parent field)
     # Composition: deleting a feature also deletes its photo rows.
     relation.setStrength(_enum(Qgis, "RelationshipStrength", "Composition")
-                         if hasattr(Qgis, "RelationshipStrength") else QgsRelation.Composition)
+                         if hasattr(Qgis, "RelationshipStrength")
+                         else _enum(QgsRelation, "RelationStrength", "Composition"))
     if not relation.isValid():
         stop(f"could not link {child.name()} to {parent.name()}: {relation.validationError()}")
     project.relationManager().addRelation(relation)
@@ -492,8 +552,8 @@ def add_background(project):
     meta.setRights(["© OpenStreetMap contributors"])
     layer.setMetadata(meta)
     # Not clickable in the app, so tapping the map only finds survey features.
-    layer.setFlags(layer.flags() & ~QgsMapLayer.Identifiable)
-    project.addMapLayer(layer, False)
+    layer.setFlags(layer.flags() & ~IDENTIFIABLE)
+    add_layer(project, layer)
     project.layerTreeRoot().addLayer(layer)  # added last = drawn at the bottom
     return layer
 
@@ -502,38 +562,116 @@ def add_background(project):
 # SECTION 3 · BUILD THE PROJECT
 # =============================================================================
 
-def build():
-    project = QgsProject.instance()
-    folder = os.path.join(PARENT_FOLDER, PROJECT_NAME)
+def all_new_names():
+    """Every GeoPackage/layer name this script will create."""
+    return ([l["name"] for l in LAYERS] + list(LOOKUP_LISTS)
+            + [l["name"] + "_photos" for l in LAYERS if l.get("multiple_photos")])
 
-    # Step 1 · Safety checks ---------------------------------------------------
-    print(f"QGIS {Qgis.QGIS_VERSION}")
+
+def preflight(project):
+    """Check EVERYTHING before writing a single file, so a mistake never
+    leaves a half-built project behind. Returns (folder, crs)."""
+    print(f"QGIS {Qgis.QGIS_VERSION}  ·  mode: {MODE}")
     if Qgis.QGIS_VERSION_INT < 32800:
         stop("this script needs QGIS 3.28 or newer.")
+    if MODE not in ("new", "add"):
+        stop("MODE must be \"new\" or \"add\".")
     if project.isDirty():
-        stop("your open QGIS project has unsaved changes. Save or close it, then run again.")
-    if os.path.exists(folder) and os.listdir(folder):
-        stop(f"{folder} already exists and is not empty. Pick another PROJECT_NAME or move that folder.")
+        stop("your open QGIS project has unsaved changes. Save it (or close it), then run again.")
+
     crs = QgsCoordinateReferenceSystem(CRS)
     if not crs.isValid():
         stop(f"'{CRS}' is not a valid CRS. Example of a valid one: 'EPSG:4326'.")
-    names = ([l["name"] for l in LAYERS] + list(LOOKUP_LISTS)
-             + [l["name"] + "_photos" for l in LAYERS if l.get("multiple_photos")])
+
+    # Names become file and column names: keep them simple so sync never trips.
+    names = all_new_names()
     if len(names) != len(set(names)):
         stop("two layers or lookup lists share the same name.")
-    # Names become file and column names: keep them simple so sync never trips.
-    import re
-    simple = re.compile(r"^[a-z][a-z0-9_]*$")
+    simple = re.compile(r"[a-z][a-z0-9_]*")
     for name in names + [f["name"] for l in LAYERS for f in l["fields"]]:
-        if not simple.match(name):
+        if not simple.fullmatch(name):
             stop(f"'{name}' should use only lowercase letters, numbers and _ (start with a letter).")
+    for name in names:
+        if name.startswith(("gpkg_", "rtree_", "sqlite_")):
+            stop(f"'{name}' starts with a name GeoPackage reserves. Pick another name.")
+    for layer in LAYERS:
+        if layer.get("geometry") not in GEOMETRY:
+            stop(f"{layer['name']}: geometry must be one of {', '.join(GEOMETRY)}.")
+        for f in layer["fields"]:
+            if f.get("type") not in _TYPES:
+                stop(f"{layer['name']}.{f['name']}: type must be one of {', '.join(_TYPES)}.")
 
-    # Step 2 · Start a clean project and create the folders -------------------
-    project.clear()
-    os.makedirs(os.path.join(folder, PHOTO_FOLDER), exist_ok=True)
-    project.setFileName(os.path.join(folder, PROJECT_NAME + ".qgz"))
-    project.setCrs(crs)
-    project.setTitle(PROJECT_NAME)
+    # Every expression must at least be valid QGIS syntax.
+    expressions = [("PHOTO_NAME", PHOTO_NAME)]
+    for layer in LAYERS:
+        for f in layer["fields"]:
+            where = f"{layer['name']}.{f['name']}"
+            if f.get("default"):
+                expressions.append((where + " default", f["default"]))
+            if f.get("constraint"):
+                expressions.append((where + " constraint", f["constraint"]["expression"]))
+            if f.get("photo_name"):
+                expressions.append((where + " photo_name", f["photo_name"]))
+    for where, text in expressions:
+        expression = QgsExpression(text)
+        if expression.hasParserError():
+            stop(f"{where}: the expression is not valid QGIS syntax ({expression.parserErrorString()}).")
+
+    if MODE == "new":
+        # Start from an empty QGIS window: we never close a project for you.
+        if project.fileName() or project.count():
+            stop("a project is open. Start from an empty one (Project > New), then run again.")
+        if not simple.fullmatch(PROJECT_NAME.replace("-", "_")):
+            stop("PROJECT_NAME should use only lowercase letters, numbers, - and _.")
+        folder = os.path.join(PARENT_FOLDER, PROJECT_NAME)
+        if os.path.exists(folder) and os.listdir(folder):
+            stop(f"{folder} already exists and is not empty. Pick another PROJECT_NAME, "
+                 "or use MODE = \"add\" to add layers to that project.")
+    else:
+        # Add to the project that is open right now (e.g. downloaded with the plugin).
+        if not project.fileName():
+            stop("MODE is \"add\": open your Mergin Maps project in QGIS first, then run again.")
+        folder = os.path.dirname(project.fileName())
+        if not os.path.isdir(os.path.join(folder, ".mergin")):
+            print("  Note: no .mergin folder here, so this is not (yet) a Mergin Maps project.\n"
+                  "        That's fine: upload it with the plugin when you're done.")
+        existing = {l.name() for l in project.mapLayers().values()}
+        for name in names:
+            if name in existing:
+                stop(f"the project already has a layer called '{name}'. Rename it in LAYERS.")
+            if os.path.exists(os.path.join(folder, name + ".gpkg")):
+                stop(f"{name}.gpkg already exists in the project folder. Rename it in LAYERS.")
+    return folder, crs
+
+
+def build():
+    project = QgsProject.instance()
+
+    # Step 1 · Safety checks (nothing is written before these pass) ----------
+    folder, crs = preflight(project)
+
+    # Step 2 · Folders and project file ----------------------------------------
+    if MODE == "new":
+        if not os.path.exists(folder):
+            CREATED_FILES.append(folder)
+        os.makedirs(folder, exist_ok=True)
+        project.setFileName(os.path.join(folder, PROJECT_NAME + ".qgz"))
+        project.setCrs(crs)
+        project.setTitle(TITLE)
+    else:
+        # Keep a copy of the project file OUTSIDE the project folder (so it is
+        # never synced), in case you want to go back. Mergin Maps also keeps
+        # every synced version in the project history.
+        backups = os.path.join(os.path.expanduser("~"), "MerginMaps backups")
+        os.makedirs(backups, exist_ok=True)
+        backup = os.path.join(backups, os.path.basename(project.fileName()) + "."
+                              + time.strftime("%Y%m%d-%H%M%S") + ".bak")
+        shutil.copy2(project.fileName(), backup)
+        print(f"  Backup of the project file: {backup}")
+    photos = os.path.join(folder, PHOTO_FOLDER)
+    if not os.path.exists(photos):
+        CREATED_FILES.append(photos)
+    os.makedirs(photos, exist_ok=True)
     print(f"Project folder: {folder}")
 
     # Step 3 · Lookup lists: one non-spatial GeoPackage each ------------------
@@ -551,9 +689,10 @@ def build():
             feature = QgsVectorLayerUtils.createFeature(layer)  # fills uuid()
             feature["name"] = value
             layer.addFeature(feature)
-        layer.commitChanges()
+        if not layer.commitChanges():
+            stop(f"could not save the values of {list_name}: {layer.commitErrors()}")
         layer.setDisplayExpression('"name"')
-        project.addMapLayer(layer, False)
+        add_layer(project, layer)
         lookup_layers[list_name] = layer
         print(f"  + lookup list  {list_name}.gpkg  ({len(values)} values)")
 
@@ -566,7 +705,9 @@ def build():
             if spec["geometry"] == "point":
                 # GPS accuracy (metres) when the point was captured.
                 fields.insert(5, {"name": "gps_accuracy", "type": "decimal", "alias": "GPS accuracy (m)",
-                                  "widget": "hidden", "default": "@position_horizontal_accuracy"})
+                                  "widget": "hidden",
+                                  # only when the point was placed at the GPS position
+                                  "default": "if(@position_from_gps, @position_horizontal_accuracy, NULL)"})
         elif spec.get("multiple_photos"):
             # The photo table links on uuid, so this layer needs one anyway.
             fields = [tracking_fields()[0]] + fields
@@ -588,7 +729,7 @@ def build():
             symbol.setColor(QColor(spec.get("color", "#e1312d")))
             layer.renderer().setSymbol(symbol)
 
-        project.addMapLayer(layer, False)
+        add_layer(project, layer)
         survey_layers.append(layer)
 
         # Photo file names, e.g. trees-sarah-261102143005.jpg (unique per photo).
@@ -611,44 +752,52 @@ def build():
         for field in fields:
             setup_field(child, field, lookup_layers)
         child.setDisplayExpression('coalesce("caption", "photo")')
-        project.addMapLayer(child, False)
+        photo_table_form(child)
+        add_layer(project, child)
         project.writeEntry("Mergin", f"PhotoNaming/{child.id()}/photo", PHOTO_NAME)
         link_photo_table(project, parent, child)
         photo_tables.append(child)
         print(f"  + photo table  {child.name()}.gpkg  (linked to {parent.name()} by uuid)")
 
-    # Step 6 · Layer order: survey layers on top, lookup lists, background last
+    # Step 6 · Layer list: new survey layers on top, tables in groups --------
     root = project.layerTreeRoot()
-    for layer in survey_layers:
-        root.addLayer(layer)
-    if photo_tables:
-        group = root.addGroup("Photo tables")
-        for layer in photo_tables:
-            group.addLayer(layer)
-            layer.setFlags(layer.flags() | QgsMapLayer.Searchable)
-    if lookup_layers:
-        group = root.addGroup("Lookup lists")
-        for layer in lookup_layers.values():
-            group.addLayer(layer)
-            # Non-spatial tables must be searchable to browse them in the app.
-            layer.setFlags(layer.flags() | QgsMapLayer.Searchable)
-    add_background(project)
+    for position, layer in enumerate(survey_layers):
+        root.insertLayer(position, layer)  # above any existing layers
+    for title, tables in (("Photo tables", photo_tables), ("Lookup lists", list(lookup_layers.values()))):
+        if tables:
+            group = root.findGroup(title) or root.addGroup(title)
+            for layer in tables:
+                group.addLayer(layer)
+                # Non-spatial tables must be searchable to browse them in the app.
+                layer.setFlags(layer.flags() | SEARCHABLE)
 
     # Step 7 · Project settings Mergin Maps relies on --------------------------
     # Relative paths: the project works wherever the folder is copied.
     project.setFilePathStorage(_enum(Qgis, "FilePathType", "Relative"))
     project.writeEntry("Paths", "/Absolute", False)
     project.setPresetHomePath("")
-    # Mergin Maps app settings (same keys the Mergin Maps plugin writes).
-    project.writeEntry("Mergin", "PhotoQuality", PHOTO_QUALITY)
-    project.writeEntry("Mergin", "Snapping", SNAPPING)
-    project.writeEntry("Mergin", "SortLayersMethod/Method", 0)  # keep QGIS layer order
-    # "Zoom to project" extent in the app.
-    if AREA_OF_INTEREST:
-        west, south, east, north = AREA_OF_INTEREST
-        to_project = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), crs, project)
-        extent = to_project.transformBoundingBox(QgsRectangle(west, south, east, north))
-        project.viewSettings().setPresetFullExtent(QgsReferencedRectangle(extent, crs))
+    if MODE == "new":
+        add_background(project)
+        project.writeEntry("Mergin", "PhotoQuality", PHOTO_QUALITY)
+        project.writeEntry("Mergin", "Snapping", SNAPPING)
+        if SNAPPING == 2:
+            # "Follow QGIS snapping" only works if QGIS snapping is on.
+            snapping = project.snappingConfig()
+            snapping.setEnabled(True)
+            project.setSnappingConfig(snapping)
+        project.writeEntry("Mergin", "SortLayersMethod/Method", 0)  # keep QGIS layer order
+        # "Zoom to project" extent in the app.
+        if AREA_OF_INTEREST:
+            west, south, east, north = AREA_OF_INTEREST
+            to_project = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), crs, project)
+            extent = to_project.transformBoundingBox(QgsRectangle(west, south, east, north))
+            project.viewSettings().setPresetFullExtent(QgsReferencedRectangle(extent, crs))
+    else:
+        # Your project's own settings (CRS, background, extent, app settings)
+        # are left as they are. Only add what is missing.
+        if not project.readNumEntry("Mergin", "PhotoQuality")[1]:
+            project.writeEntry("Mergin", "PhotoQuality", PHOTO_QUALITY)
+        print("  Existing layers, data and project settings were not changed.")
 
     # Step 8 · Save ------------------------------------------------------------
     if not project.write():
@@ -657,7 +806,7 @@ def build():
     # If this runs inside QGIS, zoom the map to the area of interest.
     try:
         from qgis.utils import iface
-        if iface and AREA_OF_INTEREST:
+        if iface and MODE == "new" and AREA_OF_INTEREST:
             iface.mapCanvas().setExtent(project.viewSettings().presetFullExtent())
             iface.mapCanvas().refresh()
     except Exception:
@@ -667,14 +816,28 @@ def build():
     print("\nDone. Your project is ready:")
     print(f"  {project.fileName()}")
     print("\nNext steps:")
-    print("  1. Look at each layer's form: Layer Properties > Attributes Form.")
-    print("  2. Mergin Maps toolbar > Create Mergin Maps project >")
-    print("     'Use current QGIS project as is', then choose a project name.")
-    print("     (The name cannot be changed later.)")
-    print("  3. Open the Mergin Maps app on your phone, download the project,")
-    print("     and capture a test feature with a photo. Sync, then check it in QGIS.")
+    print("  1. Look at each new layer's form: Layer Properties > Attributes Form.")
+    if MODE == "new":
+        print("  2. Mergin Maps toolbar > Create Mergin Maps project >")
+        print("     'Use current QGIS project as is', then choose a project name.")
+        print("     (The name cannot be changed later.)")
+    else:
+        print("  2. Mergin Maps toolbar > Synchronise: the new .gpkg files and the")
+        print("     project file are uploaded. Everyone then syncs their phone.")
+    print("  3. On a phone: download/sync the project, capture a test feature with")
+    print("     a photo, sync, and check it in QGIS.")
     print("\nRemember: change aliases, not field names. To add a question later,")
     print("use a spare field instead of adding a new column.")
 
 
-build()
+try:
+    build()
+except Exception as error:
+    # Undo this run: remove the layers and files it created (and only those).
+    undo(QgsProject.instance())
+    if isinstance(error, RuntimeError) and "STOPPED" in str(error):
+        raise  # a clear message from stop()
+    raise RuntimeError(
+        f"\n\n  Something went wrong: {error}\n"
+        "  Everything this run created was removed again; your existing layers\n"
+        "  and data were not touched. Fix the problem and run the script again.\n") from error

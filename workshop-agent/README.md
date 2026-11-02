@@ -33,6 +33,31 @@ What happens:
 6. It writes `build_<project>.py`. You run it in QGIS (Python Console > Show
    Editor > Open > Run).
 
+## New or existing project
+
+- **New** (`"mode": "new"`, default): run the script in an empty QGIS window;
+  it creates the project folder.
+- **Existing** (`"mode": "add"`): open your Mergin Maps project in QGIS, then
+  run the script. It only adds new GeoPackages and layers. Existing layers,
+  data, CRS, background and settings are left alone, and it stops before
+  writing anything if a name already exists. The `.qgz` is backed up to the
+  temp folder first. Then sync with the plugin.
+
+## Safety
+
+The agent may only write its spec and script into one agreed output folder
+(default `mergin-builds/<project>/`). It never edits other files, never opens
+or changes your projects or GeoPackages itself, and never handles passwords or
+syncs. GitHub issue text and project contents are treated as untrusted data.
+The scripts enforce part of this:
+
+- `render.py` rejects unsafe values (`..` paths, odd names, bad CRS) and won't
+  overwrite without `--force`.
+- `run_in_qgis.py` only builds inside the temp folder.
+- The build script checks everything before writing the first file.
+
+Full rules: "Safety rules" in `SKILL.md`.
+
 ## What's inside
 
 ```
