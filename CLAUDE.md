@@ -3,7 +3,7 @@
 Talk + workshop for FOSS4G North America 2026, Sacramento. Vitor works at Lutra (makes Mergin Maps); offers and wording are his to approve.
 
 ## What's here
-- **GitHub (private):** https://github.com/vitorv7519/foss4g-na-2026 — remote `origin` uses the SSH alias `vitorv7519.github.com` (key `~/.ssh/id_VitorV`, has a passphrase). Raw `*.mp4` recordings and the saved `logo.html`/`logo_files/` page are git-ignored.
+- **GitHub (private, work account VitorVieiraZ):** https://github.com/VitorVieiraZ/foss4g-na-2026 — remote `origin` uses the SSH alias `VitorVieiraZ.github.com` (key `~/.ssh/id_VitorZ`). Never use the browser's GitHub account (vitorv7519) for this project. Raw `*.mp4` recordings and the saved `logo.html`/`logo_files/` page are git-ignored.
 - `mergin-deck/workshop.html` — the **workshop** deck (5 slides, image-first). Published privately at https://claude.ai/artifact/KSQPvajuHedZQo4ZrYPZJP.
 - `mergin-deck/assets/fonts/` — bundled Inter (`InterLocal`), so both decks run offline; Google Fonts stays as a fallback.
 - `mergin-deck/index.html` — the **talk** deck (HTML, 24 slides). Published privately at https://claude.ai/artifact/FybxYi15PM7rzFoEPRzz7F — republish from this file.
