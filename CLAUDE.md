@@ -8,6 +8,7 @@ Talk + workshop for FOSS4G North America 2026, Sacramento. Vitor works at Lutra 
 - `mergin-deck/assets/fonts/` — bundled Inter (`InterLocal`), so both decks run offline; Google Fonts stays as a fallback.
 - `mergin-deck/index.html` — the **talk** deck (HTML, 24 slides). Published privately at https://claude.ai/artifact/FybxYi15PM7rzFoEPRzz7F — republish from this file.
 - `mergin-deck/assets/` — all images, `demo.mp4` (slide 8), `qr-offer.png` (form QR), `orgs/` logos, `crew-*.jpg` collage photos.
+- `workshop-agent/` — **Mergin Maps project builder** skill (plugin layout): interviews the user, renders `templates/build_project.py` from a JSON spec into a commented PyQGIS script run inside QGIS (not live QGIS control). Default CRS EPSG:4326. Rules + sources in `references/guidelines.md` (incl. Vitor's 2026-09-16 best-practices post). Linked locally at `.claude/skills/mergin-project-builder`. Test with `scripts/run_in_qgis.py` using QGIS's Python (QGIS 3.42 on this Mac).
 - `form-auto-email.gs` — Apps Script that emails form sign-ups (NOT installed, see Form below).
 - `Video FOSS4G NA.mp4` — source of the demo video (2:42, QGIS → phone → QGIS → web map). Same as https://youtu.be/YC1hjQ_dNjc.
 - Original Google Slides: "Mergin Maps — FOSS4G NA 2026" (Drive id 1cLX06m8nOsD4HQeepTS-DqXcfpkS0hEiIMiDsLaOMjo).

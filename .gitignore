@@ -6,3 +6,6 @@
 # saved web page (third-party scripts and avatars), not used by the decks
 /logo.html
 /logo_files/
+
+# known-bugs cache (refetched daily)
+workshop-agent/skills/mergin-project-builder/scripts/known_bugs_cache.json
