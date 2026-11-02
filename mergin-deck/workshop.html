@@ -192,11 +192,13 @@ a{color:inherit}
 
 <style>
   /* workshop: image-first cards */
-  .qrs{margin-top:64px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
-  .qrc{background:#fff;border:1.5px solid var(--line);border-radius:32px;padding:44px 40px 40px;display:flex;flex-direction:column;align-items:center;gap:26px;box-shadow:0 30px 60px -36px rgba(14,59,49,.35)}
-  .qrc .qr{width:330px;height:330px;image-rendering:pixelated}
+  .qrs{margin-top:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:36px}
+  .qrc{background:#fff;border:1.5px solid var(--line);border-radius:32px;padding:40px 30px 36px;display:flex;flex-direction:column;align-items:center;gap:26px;box-shadow:0 30px 60px -36px rgba(14,59,49,.35)}
+  .qrc .qr{width:300px;height:300px;image-rendering:pixelated}
   .qrc .badge{height:76px}
   .qrc b{font-size:32px;font-weight:700;color:var(--ink)}
+  .qrc .lbl{display:flex;align-items:center;gap:14px;height:76px;white-space:nowrap;font-size:28px}
+  .qrc .lbl img{height:52px;width:auto}
   .qrc.todo .qr{display:grid;place-items:center;border:3px dashed var(--line);border-radius:20px;font-size:24px;color:var(--muted);text-align:center;box-sizing:border-box;padding:30px;image-rendering:auto}
   .laptop{margin-top:40px;font-size:28px;color:var(--text);display:flex;align-items:center;gap:16px}
   .laptop i{font-style:normal;font-size:20px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:var(--ink);border-radius:999px;padding:6px 16px}
@@ -226,13 +228,14 @@ a{color:inherit}
 </section>
 
 <!-- 2 · Get set up -->
-<section class="slide" aria-label="Get set up" data-notes="Scan for your phone: App Store or Google Play, then create a free account in the app. Laptop: install the latest QGIS LTR from qgis.org/download, then the Mergin Maps plugin (Plugins → Manage and Install → Mergin Maps). I will collect emails by hand and send workspace invitations.">
+<section class="slide" aria-label="Get set up" data-notes="Scan for your phone: App Store or Google Play, then create a free account in the app. Laptop: install the latest QGIS LTR from qgis.org/download, then the Mergin Maps plugin (Plugins → Manage and Install → Mergin Maps). Last QR: add your email to the shared spreadsheet so I can send workspace invitations.">
   <div class="pad">
     <h2 class="r">Get set up</h2>
     <div class="qrs">
       <div class="qrc z"><img class="qr" src="assets/ws/s2-image11.png" alt="QR code: Mergin Maps on the App Store"><img class="badge" src="assets/ws/s2-image14.png" alt="Download on the App Store"></div>
       <div class="qrc z"><img class="qr" src="assets/ws/s2-image15.png" alt="QR code: Mergin Maps on Google Play"><img class="badge" src="assets/ws/s2-image5.png" alt="Get it on Google Play"></div>
-      <div class="qrc z"><img class="qr" src="assets/ws/qr-qgis.png" alt="QR code: download QGIS (qgis.org/download)"><b>QGIS · latest LTR</b></div>
+      <div class="qrc z"><img class="qr" src="assets/ws/qr-qgis.png" alt="QR code: download QGIS (qgis.org/download)"><b class="lbl"><img src="assets/ws/qgis-icon.png" alt="">QGIS · latest LTR</b></div>
+      <div class="qrc z"><img class="qr" src="assets/ws/qr-emails.png" alt="QR code: sign-up spreadsheet for your email"><b class="lbl"><img src="assets/ws/sheet-icon.svg" alt="">Add your email</b></div>
     </div>
     <p class="laptop r"><i>In QGIS</i>Plugins → Manage and Install → Mergin Maps</p>
   </div>
@@ -263,17 +266,27 @@ a{color:inherit}
 </section>
 
 <!-- 5 · Thank you -->
-<section class="slide dark" aria-label="Thank you for being here">
+<section class="slide dark" aria-label="Let's go capture some field data" data-notes="The offer: “For everyone in this room, Mergin Maps is free for a month. Scan this, leave your email, and we’ll set it up.” Sign-ups land in the Google Form “FOSS4G NA 2026 · 1-month trial sign-up” (forms.gle/PK44BeoB4jZKBTpVA).">
   <img class="bleed z" src="assets/topo.png" alt="" style="opacity:.9">
   <div class="pad" style="justify-content:center;padding-right:820px">
-    <h2 class="r" style="font-size:104px;line-height:1.08">Thank you for being here</h2>
+    <h2 class="r" style="font-size:104px;line-height:1.08">Let’s go capture some field data</h2>
     <p class="r" style="margin-top:48px;font-size:32px;line-height:1.7;color:var(--on-dark-muted);user-select:text">Vitor Vieira · vitor.vieira@lutraconsulting.co.uk</p>
   </div>
-  <figure class="r qr-li"><img src="assets/qr-linkedin.jpg" alt="QR code: Vitor Vieira on LinkedIn"><figcaption>Connect on LinkedIn</figcaption></figure>
+  <div class="cta r">
+    <p class="cta-eyebrow">For FOSS4G NA attendees</p>
+    <p class="cta-offer">1-month free trial</p>
+    <img src="assets/qr-offer.png" alt="QR code: sign up for the 1-month free trial (forms.gle/PK44BeoB4jZKBTpVA)">
+    <p class="cta-sub">Scan and leave your email</p>
+    <div class="cta-li"><img src="assets/qr-linkedin.jpg" alt="QR code: Vitor Vieira on LinkedIn"><span>Connect on LinkedIn</span></div>
+  </div>
   <style>
-    .qr-li{position:absolute;right:var(--mx);top:0;bottom:0;margin:auto 0;height:fit-content;text-align:center}
-    .qr-li img{width:440px;height:440px;display:block;background:#fff;border-radius:32px;padding:28px;box-sizing:border-box;box-shadow:0 40px 80px -30px rgba(0,0,0,.55)}
-    .qr-li figcaption{margin-top:22px;font-size:28px;color:var(--on-dark)}
+    .cta{position:absolute;right:var(--mx);top:0;bottom:0;margin:auto 0;height:fit-content;width:600px;box-sizing:border-box;background:#fff;border-radius:32px;padding:44px 48px 36px;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:0 40px 80px -30px rgba(0,0,0,.55)}
+    .cta-eyebrow{font-size:22px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#138a5c}
+    .cta-offer{margin-top:10px;font-size:54px;white-space:nowrap;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+    .cta>img{margin-top:26px;width:330px;height:330px}
+    .cta-sub{margin-top:14px;font-size:24px;color:var(--text)}
+    .cta-li{margin-top:28px;padding-top:24px;border-top:1.5px solid var(--line);width:100%;display:flex;align-items:center;justify-content:center;gap:18px;font-size:22px;color:var(--muted)}
+    .cta-li img{width:96px;height:96px}
   </style>
 </section>
 
