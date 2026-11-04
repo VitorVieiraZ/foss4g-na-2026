@@ -177,6 +177,11 @@ LOOKUP_LISTS = {{LOOKUP_LISTS}}
 #   "constraint" a rule with a message shown in the app when it is broken:
 #              {"expression": '"dip" <= 90', "message": "Dip must be 0-90°",
 #               "hard": True}   (hard = cannot save, False = warning only)
+#   "tab"      optional: the form tab this field is on, e.g. "Inspection".
+#              If one field has a tab, every visible field needs one. Tabs
+#              appear in the order they are first used.
+#   "group"    optional: a titled section inside the tab (or the form),
+#              e.g. "Measurements". Fields of the same group stay together.
 LAYERS = {{LAYERS}}
 
 
@@ -210,7 +215,9 @@ from qgis.core import (
     QgsProperty,
     QgsSingleSymbolRenderer,
     QgsSymbolLayer,
+    QgsAttributeEditorContainer,
     QgsAttributeEditorField,
+    QgsAttributeEditorRelation,
     QgsEditFormConfig,
     QgsExpression,
 )
@@ -490,6 +497,53 @@ def link_photo_table(project, parent, child):
     if not relation.isValid():
         stop(f"could not link {child.name()} to {parent.name()}: {relation.validationError()}")
     project.relationManager().addRelation(relation)
+    return relation
+
+
+def _container(name, parent, tab):
+    """A form tab (tab=True) or a titled group box inside a tab."""
+    box = QgsAttributeEditorContainer(name, parent)
+    if hasattr(box, "setType"):  # QGIS 3.32+
+        box.setType(_enum(Qgis, "AttributeEditorContainerType", "Tab" if tab else "GroupBox"))
+    else:
+        box.setIsGroupBox(not tab)
+    return box
+
+
+def form_layout(layer, spec, relation=None):
+    """Tabs and groups from the spec ("tab" / "group" on fields).
+
+    Without any, the form stays automatic (all fields in order). With them,
+    the form uses the drag-and-drop layout: only the fields listed here are
+    shown, so hidden fields stay out. A photo gallery goes at the end of
+    the first tab."""
+    visible = [f for f in spec["fields"] if f.get("widget", "text") != "hidden"]
+    if not any(f.get("tab") or f.get("group") for f in visible):
+        return
+    config = layer.editFormConfig()
+    config.setLayout(_enum(QgsEditFormConfig, "EditorLayout", "TabLayout"))
+    root = config.invisibleRootContainer()
+    root.clear()
+    tabs, groups = {}, {}
+    for field in visible:
+        parent = root
+        if field.get("tab"):
+            if field["tab"] not in tabs:
+                tabs[field["tab"]] = _container(field["tab"], root, tab=True)
+                root.addChildElement(tabs[field["tab"]])
+            parent = tabs[field["tab"]]
+        if field.get("group"):
+            key = (field.get("tab"), field["group"])
+            if key not in groups:
+                groups[key] = _container(field["group"], parent, tab=False)
+                parent.addChildElement(groups[key])
+            parent = groups[key]
+        idx = layer.fields().indexOf(field["name"])
+        parent.addChildElement(QgsAttributeEditorField(field["name"], idx, parent))
+    if relation is not None:
+        first = next(iter(tabs.values()), root)
+        first.addChildElement(QgsAttributeEditorRelation(relation, first))
+    layer.setEditFormConfig(config)
 
 
 def special_layer(project, folder, filename, layer_name, geometry, fields):
@@ -930,6 +984,7 @@ def build():
     photo_tables = []
     for spec, parent in zip(LAYERS, survey_layers):
         if not spec.get("multiple_photos"):
+            form_layout(parent, spec)  # tabs and groups, if the spec has any
             continue
         fields = photo_table_fields()
         child = create_geopackage(folder, spec["name"] + "_photos", "none", fields, crs)
@@ -940,7 +995,8 @@ def build():
         photo_table_form(child)
         add_layer(project, child)
         project.writeEntry("Mergin", f"PhotoNaming/{child.id()}/photo", PHOTO_NAME)
-        link_photo_table(project, parent, child)
+        relation = link_photo_table(project, parent, child)
+        form_layout(parent, spec, relation)  # tabs and groups, if any
         photo_tables.append(child)
         print(f"  + photo table  {child.name()}.gpkg  (linked to {parent.name()} by uuid)")
 

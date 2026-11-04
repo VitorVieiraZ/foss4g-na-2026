@@ -59,6 +59,23 @@ def input_of(f, lists):
             "date": "calendar", "photo": "photo (camera/gallery)"}.get(w, w)
 
 
+def form_order(fields):
+    """Fields in the order the form shows them: by tab (first use), then
+    each group kept together, as form_layout() in build_project.py does."""
+    tabs = {}
+    for f in fields:
+        tabs.setdefault(f.get("tab"), []).append(f)
+    ordered = []
+    for tab_fields in tabs.values():
+        slots = {}
+        for f in tab_fields:
+            key = f.get("group") or ("", f["name"])
+            slots.setdefault(key, []).append(f)
+        for slot in slots.values():
+            ordered.extend(slot)
+    return ordered
+
+
 def layer_block(layer, lists, out):
     fields = layer.get("fields", [])
     visible = [f for f in fields if f.get("widget", "text") != "hidden"]
@@ -72,11 +89,18 @@ def layer_block(layer, lists, out):
     out.append("  ".join([head[0]] + [" · ".join(head[1:])]))
 
     rows = []
-    for f in visible:
+    for f in form_order(visible):
         label = (f.get("alias") or default_alias(f)) + (" *" if f.get("required") else "")
         rows.append((label, f["name"], TYPE.get(f["type"], f["type"]), input_of(f, lists), f))
     w = [max([len(r[i]) for r in rows] + [0]) for i in range(3)]
+    where = (None, None)
     for label, name, kind, how, f in rows:
+        if (f.get("tab"), f.get("group")) != where:
+            if f.get("tab") and f.get("tab") != where[0]:
+                out.append(f"  [ {f['tab']} ]")
+            if f.get("group"):
+                out.append(f"  ── {f['group']}")
+            where = (f.get("tab"), f.get("group"))
         out.append(f"  {label:<{w[0]}}  {name:<{w[1]}}  {kind:<{w[2]}}  {how}")
         pad = " " * (w[0] + 4)
         if f.get("default"):

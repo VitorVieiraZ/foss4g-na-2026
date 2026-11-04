@@ -94,6 +94,15 @@ def check_spec(spec):
                 errors.append(f"{where}: lookup list '{f.get('list')}' is not in lookup_lists")
         if len(names) != len(set(names)):
             errors.append(f"{layer['name']}: duplicate field names")
+        visible = [f for f in layer["fields"] if f.get("widget", "text") != "hidden"]
+        for f in visible:
+            for key in ("tab", "group"):
+                if key in f and not (isinstance(f[key], str) and 0 < len(f[key].strip()) <= 40):
+                    errors.append(f"{layer['name']}.{f['name']}: {key} must be a short name (1-40 characters)")
+        tabbed = [f["name"] for f in visible if f.get("tab")]
+        if tabbed and len(tabbed) != len(visible):
+            untabbed = [f["name"] for f in visible if not f.get("tab")]
+            errors.append(f"{layer['name']}: some fields have a tab, these don't: {', '.join(untabbed)}")
         if layer.get("multiple_photos"):
             if layer.get("geometry") == "none":
                 errors.append(f"{layer['name']}: multiple_photos needs a map layer (point/line/polygon)")

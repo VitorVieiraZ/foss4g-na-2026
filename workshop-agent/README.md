@@ -47,7 +47,10 @@ What happens:
    ones that touch your features and avoids them or warns you.
 4. It fills in defaults and tells you which: EPSG:4326, Mergin Maps background,
    High photo quality, who/when fields, spare fields.
-5. It shows a summary to confirm.
+5. It shows a summary to confirm, plus an **interactive form preview**: a web
+   page that looks and works like the form in the Mergin Maps app (tabs,
+   groups, pick lists, photos, rules and their messages), to try before
+   anything is built.
 6. It writes `build_<project>.py`. You run it in QGIS (Python Console > Show
    Editor > Open > Run).
 
