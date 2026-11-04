@@ -1,0 +1,377 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mergin Maps Talk Script</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: one narrow reading column, one card per slide, sticky slide counter for phone use on stage */
+:root{
+  --ink:#0e3b31;      /* titles */
+  --accent:#1db278;   /* slide numbers, cues */
+  --accent-strong:#138a5c;
+  --bg:#eef3ef;       /* page ground (deck "mist") */
+  --card:#fbfcfb;     /* cards (deck "paper") */
+  --text:#3a4a44;
+  --muted:#6b7a74;
+  --line:#dbe3de;
+  --key-bg:#e3f4ea;
+  --cue-bg:#fdf0e3;
+  --cue:#9a4a12;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ink:#e8f3ee;--accent:#4fd29c;--accent-strong:#4fd29c;--bg:#0b1713;--card:#12221c;--text:#c8d8d1;--muted:#8fa79d;--line:#20372e;--key-bg:#173a2c;--cue-bg:#33240f;--cue:#f6b77d;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#e8f3ee;--accent:#4fd29c;--accent-strong:#4fd29c;--bg:#0b1713;--card:#12221c;--text:#c8d8d1;--muted:#8fa79d;--line:#20372e;--key-bg:#173a2c;--cue-bg:#33240f;--cue:#f6b77d;color-scheme:dark}
+
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:680px;margin:0 auto}
+header{padding-block:40px 24px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-strong);margin:0}
+h1{margin:10px 0 0;font-size:34px;line-height:1.12;font-weight:800;letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
+.meta{margin:14px 0 0;color:var(--muted);font-size:16px}
+.how{margin:20px 0 0;padding:16px 18px;border:1px solid var(--line);border-radius:14px;font-size:15.5px;line-height:1.55;color:var(--text);background:var(--card)}
+.how b{color:var(--ink)}
+
+nav.outline{margin:8px 0 28px}
+nav.outline summary{cursor:pointer;font-weight:700;color:var(--ink);font-size:16px;padding:10px 0}
+nav.outline ol{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px}
+nav.outline a{display:flex;gap:12px;align-items:baseline;text-decoration:none;color:var(--text);padding:7px 4px;border-radius:8px;font-size:15.5px}
+nav.outline a:hover,nav.outline a:focus-visible{background:var(--card);outline:none}
+nav.outline .n{min-width:24px;font-weight:700;color:var(--accent-strong);font-variant-numeric:tabular-nums}
+nav.outline .t{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+
+.slides{display:grid;gap:16px}
+.slide{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 20px 22px;scroll-margin-top:calc(16px + env(safe-area-inset-top,0px))}
+.slide .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.num{font-weight:800;font-size:15px;color:var(--accent-strong);font-variant-numeric:tabular-nums}
+.time{margin-left:auto;font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.slide h2{margin:6px 0 0;font-size:22px;line-height:1.25;font-weight:700;color:var(--ink);text-wrap:balance}
+.onscreen{margin:4px 0 0;font-size:14.5px;color:var(--muted)}
+.say{margin-top:14px;display:grid;gap:10px}
+.say p{margin:0;max-width:62ch}
+.key{background:var(--key-bg);border-radius:10px;padding:10px 14px;font-weight:600;color:var(--ink)}
+.cue{display:inline-block;margin-top:14px;background:var(--cue-bg);color:var(--cue);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:600}
+.section{margin:30px 4px 2px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+footer{margin-top:36px;color:var(--muted);font-size:14.5px;text-align:center}
+a{color:var(--accent-strong)}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">FOSS4G North America 2026 · Sacramento</p>
+  <h1>Mergin Maps talk script</h1>
+  <p class="meta">23 slides · about 19 minutes, including the 2:42 demo video</p>
+  <div class="how"><b>How to use it:</b> read the plain text out loud, or put it in your own words. The <b>green line</b> on each slide is the one thing to land. <b>Orange tags</b> are what to click. Press <b>N</b> in the deck to see the speaker notes for more detail.</div>
+</header>
+
+<nav class="outline" aria-label="Slides">
+<details>
+<summary>Jump to a slide</summary>
+<ol>
+  <li><a href="#s1"><span class="n">1</span>Mergin Maps<span class="t">0:00</span></a></li>
+  <li><a href="#s2"><span class="n">2</span>This is real field data.<span class="t">0:40</span></a></li>
+  <li><a href="#s3"><span class="n">3</span>This is real field data. (photos)<span class="t">1:20</span></a></li>
+  <li><a href="#s4"><span class="n">4</span>Same information. Structured, located, synced.<span class="t">2:00</span></a></li>
+  <li><a href="#s5"><span class="n">5</span>Collect. Share. Publish.<span class="t">2:45</span></a></li>
+  <li><a href="#s6"><span class="n">6</span>Mergin Maps ecosystem<span class="t">3:15</span></a></li>
+  <li><a href="#s7"><span class="n">7</span>Demo<span class="t">4:05</span></a></li>
+  <li><a href="#s8"><span class="n">8</span>Forms make your data consistent and reliable<span class="t">7:05</span></a></li>
+  <li><a href="#s9"><span class="n">9</span>Manage your projects in QGIS<span class="t">7:55</span></a></li>
+  <li><a href="#s10"><span class="n">10</span>You Can Survey Everything<span class="t">8:45</span></a></li>
+  <li><a href="#s11"><span class="n">11</span>Share your map’s story<span class="t">9:00</span></a></li>
+  <li><a href="#s12"><span class="n">12</span>Every sync is a version<span class="t">9:45</span></a></li>
+  <li><a href="#s13"><span class="n">13</span>Same form every season<span class="t">10:40</span></a></li>
+  <li><a href="#s14"><span class="n">14</span>Precision in, automation out<span class="t">11:35</span></a></li>
+  <li><a href="#s15"><span class="n">15</span>Trusted by thousands of organizations<span class="t">12:35</span></a></li>
+  <li><a href="#s16"><span class="n">16</span>Field crews on five continents<span class="t">13:05</span></a></li>
+  <li><a href="#s17"><span class="n">17</span>Case study: British Geological Survey<span class="t">13:25</span></a></li>
+  <li><a href="#s18"><span class="n">18</span>BGS: before and after<span class="t">13:55</span></a></li>
+  <li><a href="#s19"><span class="n">19</span>A year in, old data meets new<span class="t">14:55</span></a></li>
+  <li><a href="#s20"><span class="n">20</span>Case study: EDI Environmental Dynamics<span class="t">15:45</span></a></li>
+  <li><a href="#s21"><span class="n">21</span>EDI: before and after<span class="t">16:10</span></a></li>
+  <li><a href="#s22"><span class="n">22</span>Hundreds of projects, one workflow<span class="t">17:05</span></a></li>
+  <li><a href="#s23"><span class="n">23</span>Let’s go capture some field data<span class="t">17:50</span></a></li>
+</ol>
+</details>
+</nav>
+
+<div class="slides">
+
+<p class="section">Opening · the problem</p>
+
+<section class="slide" id="s1">
+  <div class="top"><span class="num">1</span><span class="time">0:00 · 40 sec</span></div>
+  <h2>Mergin Maps</h2>
+  <p class="onscreen">Cover: FOSS4G badge, your name, Lutra Consulting</p>
+  <div class="say">
+    <p>Hi everyone, I’m Vitor Vieira. I work at Lutra Consulting, the team that builds Mergin Maps.</p>
+    <p>Before I show you anything, one question. Think about the last survey your team did.</p>
+    <p class="key">Are you surveying the best way you can?</p>
+    <p>Keep that in mind. I’ll come back to it.</p>
+  </div>
+</section>
+
+<section class="slide" id="s2">
+  <div class="top"><span class="num">2</span><span class="time">0:40 · 40 sec</span></div>
+  <h2>This is real field data.</h2>
+  <p class="onscreen">Two scanned field sheets from an ecology study</p>
+  <div class="say">
+    <p>This is real field data. It comes from a paper published this year by the Ecological Society of America.</p>
+    <p>On the left, handwritten plot notes. On the right, a printed form, filled in by hand.</p>
+    <p>Someone collected this carefully. And someone else will have to read it, type it up, and figure out what it means.</p>
+  </div>
+</section>
+
+<section class="slide" id="s3">
+  <div class="top"><span class="num">3</span><span class="time">1:20 · 40 sec</span></div>
+  <h2>This is real field data.</h2>
+  <p class="onscreen">Wet clipboard at a fish hatchery · rain-soaked Field Papers map</p>
+  <div class="say">
+    <p>And this is what it looks like out in the field.</p>
+    <p>On the left, a fish hatchery in South Dakota. A crew tagging tens of thousands of paddlefish, writing numbers on a wet clipboard.</p>
+    <p>On the right, a printed field map after some time in the rain.</p>
+    <p class="key">Paper gets wet, gets lost, and gets retyped. Every step is a chance for an error.</p>
+  </div>
+</section>
+
+<section class="slide" id="s4">
+  <div class="top"><span class="num">4</span><span class="time">2:00 · 45 sec</span></div>
+  <h2>Same information. Structured, located, synced.</h2>
+  <p class="onscreen">The paper sheets → the same record as a form on a phone</p>
+  <div class="say">
+    <p>Here is the same information, captured on a phone.</p>
+    <p>Every field is in the same place every time. The point has a real location. The photo is attached to the record it belongs to.</p>
+    <p>And it syncs. Nobody retypes it, and nobody asks which version is the latest.</p>
+    <p class="key">Same information. Structured, located, synced.</p>
+  </div>
+</section>
+
+<p class="section">What Mergin Maps is</p>
+
+<section class="slide" id="s5">
+  <div class="top"><span class="num">5</span><span class="time">2:45 · 30 sec</span></div>
+  <h2>Collect. Share. Publish.</h2>
+  <p class="onscreen">“Capture on your phone. Sync with QGIS.” · two phones</p>
+  <div class="say">
+    <p>Mergin Maps does three things.</p>
+    <p>You collect data on your phone. You share it with your team through QGIS. And you publish it as a map anyone can open.</p>
+  </div>
+</section>
+
+<section class="slide" id="s6">
+  <div class="top"><span class="num">6</span><span class="time">3:15 · 50 sec</span></div>
+  <h2>Mergin Maps ecosystem</h2>
+  <p class="onscreen">Mobile app · web application · QGIS plugin</p>
+  <div class="say">
+    <p>There are three parts.</p>
+    <p>The mobile app, for capturing data on phones and tablets. The web application, for managing projects, who has access, and the change history. And the QGIS plugin, where you set up projects, design forms, and upload and download data.</p>
+    <p class="key">All three are open source. You can run the server yourself if you want.</p>
+  </div>
+</section>
+
+<section class="slide" id="s7">
+  <div class="top"><span class="num">7</span><span class="time">4:05 · 3 min</span></div>
+  <h2>Demo: field to office to browser, in three minutes</h2>
+  <p class="onscreen">Video, 2:42</p>
+  <div class="say">
+    <p>Let me show you the whole loop in under three minutes. We start in QGIS, go out to the field, come back to QGIS, and end up on a web map.</p>
+  </div>
+  <span class="cue">Click once: the video plays. Click again when it ends to move on.</span>
+  <div class="say">
+    <p>(After the video) That’s it. One project, from desk to field and back, without exporting a single file.</p>
+  </div>
+</section>
+
+<p class="section">How it works</p>
+
+<section class="slide" id="s8">
+  <div class="top"><span class="num">8</span><span class="time">7:05 · 50 sec</span></div>
+  <h2>Forms make your data consistent and reliable</h2>
+  <p class="onscreen">Collect · 3 points · phone with a form</p>
+  <div class="say">
+    <p>It starts with the form.</p>
+    <p>Everyone fills in the same fields, the same way. Value lists, dates, photos, relations: every QGIS field type works.</p>
+    <p>Questions only appear when they’re relevant. Date, surveyor and GPS accuracy fill in automatically. And constraints stop a bad value before it’s saved.</p>
+    <p class="key">Errors get caught in the field, not back at the office.</p>
+  </div>
+</section>
+
+<section class="slide" id="s9">
+  <div class="top"><span class="num">9</span><span class="time">7:55 · 50 sec</span></div>
+  <h2>Manage your projects in QGIS</h2>
+  <p class="onscreen">Share · QGIS on a tablet</p>
+  <div class="say">
+    <p>And you build that form in QGIS. There’s no second tool and no separate form builder.</p>
+    <p>Your layers, your styling and your forms look the same on the phone. When you’re ready, you sync with one button.</p>
+    <p class="key">If you can set up a QGIS project, you can set up a field survey.</p>
+  </div>
+</section>
+
+<section class="slide" id="s10">
+  <div class="top"><span class="num">10</span><span class="time">8:45 · 15 sec</span></div>
+  <h2>You Can Survey Everything</h2>
+  <p class="onscreen">The meme · title and image only</p>
+  <div class="say">
+    <p>Which means…</p>
+    <p class="key">(Pause. Let the slide do the work.)</p>
+    <p>If it fits in a QGIS project, you can take it into the field.</p>
+  </div>
+</section>
+
+<section class="slide" id="s11">
+  <div class="top"><span class="num">11</span><span class="time">9:00 · 45 sec</span></div>
+  <h2>Share your map’s story</h2>
+  <p class="onscreen">Publish · web map in a browser</p>
+  <div class="say">
+    <p>Then there’s the person who asks, “Can I see it?”</p>
+    <p>You send them one link. It shows live data, refreshed after every sync. They can click a feature to see its attributes and photos. Layers, legend and base maps come straight from QGIS.</p>
+    <p class="key">A URL instead of a PDF.</p>
+  </div>
+</section>
+
+<section class="slide" id="s12">
+  <div class="top"><span class="num">12</span><span class="time">9:45 · 55 sec</span></div>
+  <h2>Every sync is a version</h2>
+  <p class="onscreen">Share · “Latest changes” history</p>
+  <div class="say">
+    <p>Every time someone syncs, Mergin Maps saves a new version.</p>
+    <p>You see who changed what, and when, down to a single attribute.</p>
+    <p>If two people edit the same layer offline, their changes merge, they don’t overwrite each other. That’s our open-source geodiff library at work.</p>
+    <p>And you can roll back to any earlier version.</p>
+    <p class="key">For audited work, this is your evidence trail.</p>
+  </div>
+</section>
+
+<section class="slide" id="s13">
+  <div class="top"><span class="num">13</span><span class="time">10:40 · 55 sec</span></div>
+  <h2>Same form every season. Comparable for years.</h2>
+  <p class="onscreen">Long-term data · stacked maps 2022 to 2026</p>
+  <div class="say">
+    <p>This is what all of that adds up to.</p>
+    <p>The same project and the same form, season after season. You’re not starting a new spreadsheet every year, and nobody renames a column halfway through.</p>
+    <p>So when you open 2022 next to 2026, the points are in the same places and the attributes mean the same thing. You can actually compare them.</p>
+    <p class="key">Consistent, reliable data over the years. That’s what makes long-term monitoring work.</p>
+  </div>
+</section>
+
+<section class="slide" id="s14">
+  <div class="top"><span class="num">14</span><span class="time">11:35 · 1 min</span></div>
+  <h2>Precision in, automation out</h2>
+  <p class="onscreen">External GPS · APIs and database sync</p>
+  <div class="say">
+    <p>Two more things for the people who need them.</p>
+    <p>Precision: a phone gives you a few meters. Plug in an external GPS receiver, from Emlid, Trimble, Bad Elf and others, and you get centimeter accuracy, stored with every feature.</p>
+    <p>Automation: there are Python and C++ clients, two-way sync with PostGIS, media sync to S3 or Google Drive, and OGC API access.</p>
+    <p class="key">Everything you’ve seen can be automated.</p>
+  </div>
+</section>
+
+<p class="section">Who uses it</p>
+
+<section class="slide" id="s15">
+  <div class="top"><span class="num">15</span><span class="time">12:35 · 30 sec</span></div>
+  <h2>Trusted by thousands of organizations and 100,000+ users</h2>
+  <p class="onscreen">Logos: IFAD, BGS, Danish data agency, universities and more</p>
+  <div class="say">
+    <p>Today, thousands of organizations and more than 100,000 people use Mergin Maps. National agencies, universities, foresters, engineers.</p>
+  </div>
+</section>
+
+<section class="slide" id="s16">
+  <div class="top"><span class="num">16</span><span class="time">13:05 · 20 sec</span></div>
+  <h2>Field crews on five continents</h2>
+  <p class="onscreen">Photo collage of field crews</p>
+  <div class="say">
+    <p>On five continents. Forests, wetlands, construction sites, villages.</p>
+    <p>Let me tell you about two of them.</p>
+  </div>
+</section>
+
+<section class="slide" id="s17">
+  <div class="top"><span class="num">17</span><span class="time">13:25 · 30 sec</span></div>
+  <h2>Case study: British Geological Survey</h2>
+  <p class="onscreen">Geologists on a moor in the rain</p>
+  <div class="say">
+    <p>First, the British Geological Survey. For about twenty years, their geologists collected field data with a system built on ArcGIS.</p>
+    <p>Then they had to replace it.</p>
+  </div>
+</section>
+
+<section class="slide" id="s18">
+  <div class="top"><span class="num">18</span><span class="time">13:55 · 1 min</span></div>
+  <h2>BGS: before and after</h2>
+  <p class="onscreen">Before / After · Result: 2,000+ localities in year one</p>
+  <div class="say">
+    <p>Before: their system, BGS·SIGMA, ran on ArcGIS since 2005. In March 2024, Esri retired that platform, so the whole system had to go. They used rugged Windows tablets: heavy, expensive, and in a town they draw attention. And they were locked to one vendor.</p>
+    <p>After: one QGIS project that works the same on tablets and phones. That, and clean multi-user merging, is why they picked Mergin Maps. The forms have constraints, so bad data can’t be saved. And the geologists use ordinary phones. Someone tapping on a phone just blends in.</p>
+    <p class="key">Result: more than 2,000 localities mapped in the first year.</p>
+  </div>
+</section>
+
+<section class="slide" id="s19">
+  <div class="top"><span class="num">19</span><span class="time">14:55 · 50 sec</span></div>
+  <h2>A year in, old data meets new</h2>
+  <p class="onscreen">2,000+ localities · 1915 field slip</p>
+  <div class="say">
+    <p>My favorite part of this story.</p>
+    <p>On the right is a field slip, a boundary drawn by hand in 1915. Over a hundred years later, a BGS geologist went to the same place with Mergin Maps and confirmed that boundary on site.</p>
+    <p class="key">Old data and new data, side by side, and they agree. That’s what “reliable over the years” means.</p>
+  </div>
+</section>
+
+<section class="slide" id="s20">
+  <div class="top"><span class="num">20</span><span class="time">15:45 · 25 sec</span></div>
+  <h2>Case study: EDI Environmental Dynamics</h2>
+  <p class="onscreen">Field technician with a tablet</p>
+  <div class="say">
+    <p>The second story is closer to home. EDI is an environmental consultancy with thirty years of fieldwork across northern and western Canada.</p>
+  </div>
+</section>
+
+<section class="slide" id="s21">
+  <div class="top"><span class="num">21</span><span class="time">16:10 · 55 sec</span></div>
+  <h2>EDI: before and after</h2>
+  <p class="onscreen">Before / After · Result: ~100 active projects</p>
+  <div class="say">
+    <p>Before: crews used one app to navigate and another to fill in forms, and the data stayed stuck on each device. License costs were hard to predict. And when something broke, they waited on the vendor.</p>
+    <p>After: they found Mergin Maps on a QGIS thread on Reddit, tested it for a year, then rolled it out to about 180 staff. Because the code is open and every change is logged, they fix problems themselves.</p>
+    <p class="key">Result: about 100 active projects, and 200 planned for next year.</p>
+  </div>
+</section>
+
+<section class="slide" id="s22">
+  <div class="top"><span class="num">22</span><span class="time">17:05 · 45 sec</span></div>
+  <h2>Hundreds of projects, one workflow</h2>
+  <p class="onscreen">~100 projects · 300 attributes in the largest form</p>
+  <div class="say">
+    <p>Their largest form has 300 attributes. They took the paper forms their regulators require and rebuilt them in QGIS, with parent, child and grandchild tables.</p>
+    <p>Then they built on top of it: their own API integration, projects created automatically from Google Forms, and more than 200 gigabytes of project data.</p>
+    <p class="key">All on the same open-source stack you’ve seen today.</p>
+  </div>
+</section>
+
+<p class="section">Close</p>
+
+<section class="slide" id="s23">
+  <div class="top"><span class="num">23</span><span class="time">17:50 · 1 min</span></div>
+  <h2>Let’s go capture some field data</h2>
+  <p class="onscreen">Thank you · QR for the 1-month trial · LinkedIn QR</p>
+  <div class="say">
+    <p>So, back to my first question. Are you surveying the best way you can?</p>
+    <p>If you want to find out, everyone in this room gets Mergin Maps free for a month. Scan this code, leave your email, and we’ll set it up for you.</p>
+    <p class="key">Let’s go capture some field data. Thank you!</p>
+    <p>I’m happy to take questions.</p>
+  </div>
+  <span class="cue">Leave this slide up during questions, so people can scan the QR code.</span>
+</section>
+
+</div>
+
+<footer>About 19 minutes at a relaxed pace. Slides 13 and 19 carry the core message: consistent, reliable data over the years.</footer>
+</div>

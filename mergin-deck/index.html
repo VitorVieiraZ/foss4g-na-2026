@@ -215,8 +215,25 @@ a{color:inherit}
   </div>
 </section>
 
-<!-- 3 · What happens afterwards -->
-<section class="slide" aria-label="What happens to it afterwards" data-notes="Paper notes get retyped again and again, by different people, into different spreadsheets. Versions multiply: email, USB stick, chat — nobody knows which one is current. Photos and other media get separated from the records they belong to. With Mergin Maps the whole team uses the same form, photos are geotagged and attached to the feature, and everything syncs to one source of truth. The result is data you can trust, and compare, season after season.">
+<!-- 2b · Real field data, in the field -->
+<section class="slide paper" aria-label="This is real field data, in the field">
+  <div class="pad">
+    <h2 class="r">This is real field data.</h2>
+    <div class="fieldpics">
+      <div class="z"><img src="assets/field-clipboard.jpg" alt="Wet clipboard with hand-scrawled tag numbers, a pencil and a calculator at the edge of a fish hatchery tank" style="object-position:center 78%"></div>
+      <div class="z"><img src="assets/field-photo-vitor.jpg" alt="Rain-soaked Field Papers map printout on a clipboard, held over a wet city street" style="object-position:center 60%"></div>
+    </div>
+    <p class="source r" style="margin-top:auto">Left photo: USFWS Mountain-Prairie (public domain)</p>
+  </div>
+  <style>
+    .fieldpics{margin-top:56px;height:660px;display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+    .fieldpics>div{border-radius:28px;overflow:hidden;background:var(--mist);min-width:0}
+    #stage .fieldpics img{width:100%;height:100%;object-fit:cover;display:block}
+  </style>
+</section>
+
+<!-- 3 · What happens afterwards (hidden: skipped in the deck, kept for later) -->
+<section class="slide" hidden aria-label="What happens to it afterwards" data-notes="Paper notes get retyped again and again, by different people, into different spreadsheets. Versions multiply: email, USB stick, chat — nobody knows which one is current. Photos and other media get separated from the records they belong to. With Mergin Maps the whole team uses the same form, photos are geotagged and attached to the feature, and everything syncs to one source of truth. The result is data you can trust, and compare, season after season.">
   <div class="pad">
     <h2 class="r">What happens to it afterwards</h2>
     <div class="compare short">
@@ -242,8 +259,8 @@ a{color:inherit}
   </div>
 </section>
 
-<!-- 5 · Speaker -->
-<section class="slide" aria-label="Vitor Vieira">
+<!-- 5 · Speaker (hidden: skipped in the deck, kept for later) -->
+<section class="slide" hidden aria-label="Vitor Vieira">
   <div class="pad" style="padding-top:150px">
     <img class="r" src="assets/lutra.png" alt="Lutra Consulting" style="height:176px;width:auto;align-self:flex-start">
     <h2 class="r" style="margin-top:140px;font-size:80px">Vitor Vieira</h2>
@@ -257,7 +274,7 @@ a{color:inherit}
 <section class="slide" aria-label="Collect. Share. Publish.">
   <div class="pad" style="justify-content:center;padding-bottom:132px">
     <h2 class="r" style="font-size:104px;line-height:1.08;max-width:11ch">Collect. Share. Publish.</h2>
-    <p class="lead r" style="margin-top:48px;max-width:26ch">Record geospatial field data on your mobile device with ease. Collaborate with your team using instant sync with QGIS.</p>
+    <p class="lead r" style="margin-top:48px;max-width:26ch">Capture on your phone.<br>Sync with QGIS.</p>
   </div>
   <img class="r" src="assets/logo-dark.png" alt="Mergin Maps" style="position:absolute;left:var(--mx);bottom:108px;height:70px">
   <img class="z" src="assets/phones.png" alt="Two phones running Mergin Maps: a feature form and a map with GPS position" style="position:absolute;right:96px;top:28px;height:1060px">
@@ -273,25 +290,15 @@ a{color:inherit}
 </section>
 
 <!-- 8 · Demo -->
-<section class="slide dark" aria-label="Demo: field to office to browser, in two minutes">
+<section class="slide dark" aria-label="Demo: field to office to browser, in three minutes">
   <img class="bleed" src="assets/topo.png" alt="" style="opacity:.45">
   <div class="demo-head">
     <p class="eyebrow r">Demo</p>
-    <h2 class="r">Field to office to browser, in two minutes</h2>
+    <h2 class="r">Field to office to browser, in three minutes</h2>
   </div>
   <div class="screen z">
     <video src="assets/demo.mp4" poster="assets/demo-poster.jpg" playsinline preload="auto"></video>
     <button class="play" aria-label="Play the demo video"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg></span></button>
-  </div>
-</section>
-
-<!-- 8b · You can survey everything -->
-<section class="slide" aria-label="You can survey everything">
-  <div class="pad" style="align-items:center">
-    <h2 class="r" style="align-self:flex-start">You Can Survey Everything</h2>
-    <div class="z" style="margin-top:56px;height:740px;aspect-ratio:1024/587;border-radius:28px;overflow:hidden;background:#000">
-      <img src="assets/everything.jpg" alt="Wide-eyed, delighted face: the meme from “You Can Code Everything”" style="width:100%;height:100%;object-fit:cover;display:block">
-    </div>
   </div>
 </section>
 
@@ -322,6 +329,16 @@ a{color:inherit}
   </div>
   <div class="grow" style="position:absolute;top:0;right:0;bottom:0;width:812px;background:var(--peach);overflow:hidden;transform-origin:bottom">
     <img class="z" src="assets/qgis-tablet.png" alt="QGIS on a tablet with the Mergin Maps toolbar and a map of survey points" style="position:absolute;left:0;top:-30px;height:1150px">
+  </div>
+</section>
+
+<!-- 8b · You can survey everything -->
+<section class="slide" aria-label="You can survey everything">
+  <div class="pad" style="align-items:center">
+    <h2 class="r" style="align-self:flex-start">You Can Survey Everything</h2>
+    <div class="z" style="margin-top:56px;height:740px;aspect-ratio:1024/587;border-radius:28px;overflow:hidden;background:#000">
+      <img src="assets/everything.jpg" alt="Wide-eyed, delighted face: the meme from “You Can Code Everything”" style="width:100%;height:100%;object-fit:cover;display:block">
+    </div>
   </div>
 </section>
 
@@ -577,10 +594,10 @@ a{color:inherit}
 </section>
 
 <!-- 23 · Close -->
-<section class="slide dark" aria-label="Are you surveying the best way you can?" data-notes="Closing question, then the offer: “For everyone in this room, Mergin Maps is free for a month. Scan this, leave your email, and we’ll set it up.” Sign-ups land in the Google Form “FOSS4G NA 2026 · 1-month trial sign-up” (forms.gle/PK44BeoB4jZKBTpVA). Ask the same question you opened with.">
+<section class="slide dark" aria-label="Let’s go capture some field data" data-notes="Closing question, then the offer: “For everyone in this room, Mergin Maps is free for a month. Scan this, leave your email, and we’ll set it up.” Sign-ups land in the Google Form “FOSS4G NA 2026 · 1-month trial sign-up” (forms.gle/PK44BeoB4jZKBTpVA).">
   <img class="bleed z" src="assets/topo.png" alt="" style="opacity:.9">
   <div class="pad" style="justify-content:center;padding-right:820px">
-    <h2 class="r" style="font-size:88px;line-height:1.12">Are you surveying the best way you can?</h2>
+    <h2 class="r" style="font-size:88px;line-height:1.12">Let’s go capture some field data</h2>
     <p class="r" style="margin-top:64px;font-size:40px;color:var(--on-dark)">Thank you. Questions?</p>
     <p class="r" style="margin-top:40px;font-size:30px;line-height:1.7;color:var(--on-dark-muted);user-select:text">Vitor Vieira · vitor.vieira@lutraconsulting.co.uk<br><a href="https://merginmaps.com" target="_blank" rel="noopener" style="text-decoration:none">merginmaps.com</a></p>
   </div>
@@ -620,7 +637,7 @@ a{color:inherit}
 <script>
 (() => {
   const stage = document.getElementById('stage');
-  const slides = [...stage.querySelectorAll('.slide')];
+  const slides = [...stage.querySelectorAll('.slide:not([hidden])')];
   const count = document.getElementById('count');
   const bar = document.querySelector('#progress i');
   const hud = document.getElementById('hud');
@@ -644,15 +661,14 @@ a{color:inherit}
   const W = 1920, H = 1080;
   const KIND = [null,
     'photo',   // 2  real field data (scanned sheets)
-    'gps',     // 3  what happens afterwards
+    'gps',     // 2b real field data, in the field (3 "afterwards" is hidden)
     'polygon', // 4  structured, located, synced
-    'photo',   // 5  speaker
     'gps',     // 6  collect. share. publish.
     'sync',    // 7  ecosystem
     'gps',     // 8  demo
-    'photo',   // 8b you can survey everything
     'polygon', // 9  forms
     'measure', // 10 QGIS
+    'photo',   // 8b you can survey everything
     'tiles',   // 11 web maps
     'sync',    // 12 versions
     'tiles',   // 12b data across the years
@@ -776,13 +792,12 @@ a{color:inherit}
     ['06:52', 'Site 219 · last season’s paper sheet'],
     ['07:20', 'Walking out to site 219'],
     ['07:41', 'Plot 219 mapped · photos attached'],
-    ['07:55', 'Crew check-in · Vitor'],
     ['08:30', 'J St & 13th · new feature'],
     ['09:10', 'Morning sync · the office sees it live'],
     ['09:45', 'Esquire IMAX Theatre · site visit'],
-    ['09:58', 'Wait… can we survey this too?'],
     ['10:20', 'Lot 14 · form saved, no errors'],
     ['12:40', 'Back at the office · QGIS'],
+    ['12:58', 'Wait… can we survey this too?'],
     ['13:15', 'Web map refreshed for the client'],
     ['13:40', 'Martin’s edits merged · no conflicts'],
     ['13:55', 'Compared with 2022 · same form, same fields'],
@@ -797,7 +812,7 @@ a{color:inherit}
     ['11:00 PT', 'EDI · project #100 created'],
     ['18:30', 'Day complete · collected, synced, published']
   ];
-  const CHAPTER = i => i >= 1 && i <= 15 ? 'sac' : i >= 17 && i <= 19 ? 'uk' : i >= 20 && i <= 22 ? 'ca' : 'x' + i;
+  const CHAPTER = i => i >= 1 && i <= 14 ? 'sac' : i >= 16 && i <= 18 ? 'uk' : i >= 19 && i <= 21 ? 'ca' : 'x' + i;
   const routeBefore = n => { const c = CHAPTER(n), out = []; for (let i = 0; i < n; i++) if (CHAPTER(i) === c) out.push(pt(i)); return out; };
   function trail(points, cls = 'hist') {
     if (points.length < 1) return null;
