@@ -1,0 +1,29 @@
+{
+  "title": "Sacramento fire hydrants",
+  "project_name": "hydrant-demo",
+  "qgis_version": "3.42",
+  "area_of_interest": {"bbox": [-121.56, 38.43, -121.36, 38.69], "label": "Sacramento, CA"},
+  "lookup_lists": {"hydrant_makes": ["American AVK", "Clow Medallion", "Mueller Super Centurion", "Waterous Pacer", "Unknown"]},
+  "layers": [
+    {"name": "hydrants", "geometry": "point", "title": "hydrant_id", "color": "#e1312d", "multiple_photos": true,
+     "fields": [
+       {"name": "hydrant_id", "type": "text", "alias": "Hydrant ID", "tab": "General", "required": true,
+        "constraint": {"expression": "regexp_match(\"hydrant_id\", '^H-[0-9]{4}$')", "message": "Use the format H-1234", "hard": true}},
+       {"name": "make", "type": "text", "widget": "lookup", "list": "hydrant_makes", "tab": "General"},
+       {"name": "status", "type": "text", "widget": "dropdown", "choices": ["In service", "Out of service", "Needs repair"], "required": true, "tab": "General"},
+       {"name": "inspected_on", "type": "date", "widget": "date", "default": "now()", "tab": "Inspection", "group": "Visit"},
+       {"name": "accessible", "type": "boolean", "widget": "checkbox", "tab": "Inspection", "group": "Visit"},
+       {"name": "static_psi", "type": "integer", "alias": "Static pressure (psi)", "widget": "number", "min": 0, "max": 200, "tab": "Inspection", "group": "Pressure test",
+        "constraint": {"expression": "\"static_psi\" IS NULL OR \"static_psi\" >= 20", "message": "Below 20 psi: report to the water utility", "hard": false}},
+       {"name": "outlets", "type": "text", "widget": "lookup", "list": "hydrant_makes", "multiple": true, "alias": "Outlet types", "tab": "Inspection", "group": "Pressure test"},
+       {"name": "repair_notes", "type": "text", "widget": "notes", "tab": "Inspection",
+        "constraint": {"expression": "\"status\" <> 'Needs repair' OR \"repair_notes\" IS NOT NULL", "message": "Describe what needs repair", "hard": true}},
+       {"name": "gps_check", "type": "text", "tab": "Inspection", "constraint": {"expression": "@position_horizontal_accuracy IS NULL OR @position_horizontal_accuracy <= 10", "message": "GPS worse than 10 m", "hard": false}}
+     ]},
+    {"name": "mains", "geometry": "line", "color": "#5e9ee4",
+     "fields": [
+       {"name": "diameter_in", "type": "decimal", "widget": "number", "min": 2, "max": 48},
+       {"name": "photo", "type": "text", "widget": "photo"}
+     ]}
+  ]
+}

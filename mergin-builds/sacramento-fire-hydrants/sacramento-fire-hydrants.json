@@ -1,0 +1,36 @@
+{
+  "title": "Sacramento fire hydrants",
+  "project_name": "sacramento-fire-hydrants",
+  "mode": "new",
+  "qgis_version": "3.42",
+  "parent_folder": "MerginMaps Projects",
+  "crs": "EPSG:4326",
+  "area_of_interest": {"bbox": [-121.56, 38.43, -121.36, 38.69], "label": "Sacramento, CA"},
+  "background": "mergin",
+  "app_settings": {
+    "photo_quality": 1,
+    "snapping": 0,
+    "layer_order": "qgis",
+    "filters": [
+      {"layer": "hydrants", "field": "color", "name": "Color"},
+      {"layer": "hydrants", "field": "operable", "name": "Operable"}
+    ]
+  },
+  "layers": [
+    {"name": "hydrants", "geometry": "point", "title": "hydrant_number", "color": "#e1312d",
+     "fields": [
+       {"name": "hydrant_number", "type": "text", "alias": "Hydrant number", "widget": "text", "required": true},
+       {"name": "color", "type": "text", "alias": "Color", "widget": "dropdown",
+        "choices": ["Blue", "Green", "Orange", "Red", "Yellow", "White", "Silver/Chrome", "Other"]},
+       {"name": "operable", "type": "boolean", "alias": "Operable?", "widget": "checkbox"},
+       {"name": "diameter_in", "type": "decimal", "alias": "Diameter (in)", "widget": "number", "min": 0, "max": 15},
+       {"name": "photo", "type": "text", "alias": "Photo", "widget": "photo"}
+     ]},
+    {"name": "fire_stations", "geometry": "point", "title": "address", "color": "#00423c",
+     "fields": [
+       {"name": "address", "type": "text", "alias": "Address", "widget": "text", "required": true},
+       {"name": "bays", "type": "integer", "alias": "Number of bays", "widget": "number", "min": 0, "max": 20},
+       {"name": "photo", "type": "text", "alias": "Photo", "widget": "photo"}
+     ]}
+  ]
+}
