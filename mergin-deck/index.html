@@ -593,6 +593,34 @@ a{color:inherit}
   <style>.ss{height:380px;border-radius:20px;overflow:hidden;border:1.5px solid var(--line);background:#fff}.ss img{width:100%;height:100%;object-fit:cover;object-position:left top;display:block}</style>
 </section>
 
+<!-- 22 · Try it this week -->
+<section class="slide paper" aria-label="Try it this week" data-notes="Three steps, all free to start. One: install the Mergin Maps plugin from the official QGIS plugin repository. Two: install the mobile app, iOS or Android, free. Three: sync your own project and repeat today’s demo with your data. Then: the community forum at community.merginmaps.com, with the wishlist and public status page. Everything is open source at github.com/MerginMaps, docs included, and pull requests are welcome. Teachers, students and non-profits can get free plans, so classes and volunteer groups can use it at no cost.">
+  <div class="pad">
+    <h2 class="r">Try it this week</h2>
+    <div class="steps">
+      <div class="step r"><b>1</b><h3>Install the QGIS plugin</h3><p>From the official plugin repository</p></div>
+      <div class="step r"><b>2</b><h3>Install the app</h3><p>iOS or Android, free</p></div>
+      <div class="step r"><b>3</b><h3>Sync your own project</h3><p>Repeat today’s demo with your data</p></div>
+    </div>
+    <div class="links r">
+      <div><h3>Community</h3><p>community.merginmaps.com</p></div>
+      <div><h3>Open source</h3><p>github.com/MerginMaps</p></div>
+      <div class="hi"><h3>Free plans</h3><p>Teachers, students and non-profits</p></div>
+    </div>
+  </div>
+  <style>
+    .steps{margin-top:64px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
+    .step{background:#fff;border:1.5px solid var(--line);border-radius:28px;padding:48px 52px 52px}
+    .step b{display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:36px;font-weight:800}
+    .step h3{margin:36px 0 12px;font-size:40px;font-weight:700;line-height:1.2;color:var(--ink)}
+    .step p{font-size:28px;line-height:1.45;color:var(--text)}
+    .links{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;background:var(--ink);border-radius:28px;padding:44px 52px}
+    .links h3{margin:0 0 8px;font-size:32px;font-weight:700;color:#fff}
+    .links p{font-size:26px;line-height:1.4;color:var(--on-dark)}
+    .links .hi h3{color:var(--accent)}
+  </style>
+</section>
+
 <!-- 23 · Close -->
 <section class="slide dark" aria-label="Let’s go capture some field data" data-notes="Closing question, then the offer: “For everyone in this room, Mergin Maps is free for a month. Scan this, leave your email, and we’ll set it up.” Sign-ups land in the Google Form “FOSS4G NA 2026 · 1-month trial sign-up” (forms.gle/PK44BeoB4jZKBTpVA).">
   <img class="bleed z" src="assets/topo.png" alt="" style="opacity:.9">
@@ -681,6 +709,7 @@ a{color:inherit}
     'contour', // 19 EDI cover
     'sync',    // 20 EDI before/after
     'tiles',   // 21 hundreds of projects
+    'sync',    // 22 try it this week
     'contour'  // 23 close
   ];
   const DELAY = { gps: 880, contour: 640, polygon: 1260, sync: 1000, tiles: 700, photo: 900, measure: 1020 };
@@ -810,6 +839,7 @@ a{color:inherit}
     ['08:30 PT', 'Northern BC · EDI field crew'],
     ['09:40 PT', 'EDI · 180 staff, one workflow'],
     ['11:00 PT', 'EDI · project #100 created'],
+    ['17:45', 'Kit packed · your turn tomorrow'],
     ['18:30', 'Day complete · collected, synced, published']
   ];
   const CHAPTER = i => i >= 1 && i <= 14 ? 'sac' : i >= 16 && i <= 18 ? 'uk' : i >= 19 && i <= 21 ? 'ca' : 'x' + i;
