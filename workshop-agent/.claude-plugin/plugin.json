@@ -1,8 +1,0 @@
-{
-  "name": "mergin-workshop-agent",
-  "version": "0.2.0",
-  "description": "Designs Mergin Maps survey projects with you and writes a commented PyQGIS script that builds them in QGIS, following Mergin Maps guidelines.",
-  "author": {
-    "name": "Vitor Vieira (Lutra Consulting)"
-  }
-}
